@@ -239,25 +239,25 @@ export const AnalysisDashboard: React.FC = () => {
             )}
 
             <Card className="border-none shadow-2xl shadow-blue-500/5 bg-slate-900/40 backdrop-blur-xl">
-                <CardHeader className="border-b border-slate-800/50 pb-8">
-                    <div className="flex flex-col xl:flex-row justify-between xl:items-center gap-6">
+                <CardHeader className="border-b border-slate-800/50 pb-8 px-4 sm:px-8">
+                    <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6">
                         <div className="space-y-1">
-                            <CardTitle className="text-2xl font-black bg-gradient-to-r from-white to-slate-500 bg-clip-text text-transparent">Centro de Inteligência</CardTitle>
-                            <p className="text-slate-500 text-sm font-medium">Monitore o desempenho operacional e financeiro em tempo real</p>
+                            <CardTitle className="text-xl sm:text-2xl font-black bg-gradient-to-r from-white to-slate-500 bg-clip-text text-transparent">Centro de Inteligência</CardTitle>
+                            <p className="text-slate-500 text-xs sm:text-sm font-medium">Monitore o desempenho operacional e financeiro em tempo real</p>
                         </div>
                         
                         <div className="flex flex-wrap items-center gap-3 no-print">
                             {/* Premium Tab Switcher */}
-                            <div className="bg-slate-800 p-1 rounded-xl flex border border-slate-700/50 mr-4">
+                            <div className="bg-slate-800 p-1 rounded-xl flex border border-slate-700/50 w-full sm:w-auto">
                                 <button 
                                     onClick={() => setViewMode('fleet')}
-                                    className={`px-6 py-2 rounded-lg text-xs font-bold transition-all duration-300 ${viewMode === 'fleet' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg text-xs font-bold transition-all duration-300 ${viewMode === 'fleet' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     FROTA
                                 </button>
                                 <button 
                                     onClick={() => setViewMode('financial')}
-                                    className={`px-6 py-2 rounded-lg text-xs font-bold transition-all duration-300 ${viewMode === 'financial' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white'}`}
+                                    className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg text-xs font-bold transition-all duration-300 ${viewMode === 'financial' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-white'}`}
                                 >
                                     FINANCEIRO
                                 </button>
@@ -267,19 +267,19 @@ export const AnalysisDashboard: React.FC = () => {
                                 id="vehicle-selector"
                                 value={selectedVehicleId}
                                 onChange={e => setSelectedVehicleId(e.target.value)}
-                                className="bg-slate-800 border-slate-700/50 rounded-xl py-2 px-4 text-white text-sm font-semibold focus:ring-2 ring-blue-500"
+                                className="bg-slate-800 border-slate-700/50 rounded-xl py-2 px-4 text-white text-sm font-semibold focus:ring-2 ring-blue-500 w-full sm:w-auto"
                             >
                                 <option value="">Toda a Frota</option>
                                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.plate} ({v.model})</option>)}
                             </select>
                             
-                            <div className="flex bg-slate-800 rounded-xl border border-slate-700/50">
-                                <input type="month" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none py-2 px-4 text-white text-sm font-semibold outline-none" />
+                            <div className="flex bg-slate-800 rounded-xl border border-slate-700/50 w-full sm:w-auto">
+                                <input type="month" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none py-2 ps-4 pe-2 text-white text-sm font-semibold outline-none flex-1" />
                                 <div className="py-2 text-slate-600">|</div>
-                                <input type="month" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none py-2 px-4 text-white text-sm font-semibold outline-none" />
+                                <input type="month" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none py-2 ps-2 pe-4 text-white text-sm font-semibold outline-none flex-1" />
                             </div>
-
-                            <Button onClick={handlePrint} variant="secondary" className="bg-slate-800 hover:bg-slate-700 border-none rounded-xl">
+1
+                            <Button onClick={handlePrint} variant="secondary" className="bg-slate-800 hover:bg-slate-700 border-none rounded-xl w-full sm:w-auto">
                                 <ICONS.printer className="w-4 h-4 mr-2" />
                                 Relatório PDF
                             </Button>
@@ -287,7 +287,7 @@ export const AnalysisDashboard: React.FC = () => {
                     </div>
                 </CardHeader>
                 
-                <CardContent className="pt-8 px-8 pb-12">
+                <CardContent className="pt-8 px-4 sm:px-8 pb-12">
                     {hasData ? (
                         <div className="space-y-12">
                             {/* Dynamic KPI Section */}
@@ -310,22 +310,22 @@ export const AnalysisDashboard: React.FC = () => {
                             </div>
                             
                             {/* Main Performance Chart */}
-                            <div className="bg-slate-900/40 p-10 rounded-3xl border border-slate-800/80 shadow-inner flex flex-col min-h-[500px]">
-                                <div className="flex justify-between items-center mb-10">
+                            <div className="bg-slate-900/40 p-4 sm:p-10 rounded-3xl border border-slate-800/80 shadow-inner flex flex-col min-h-[500px]">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
                                     <div className="space-y-1">
                                         <h3 className="text-lg font-bold text-white tracking-tight uppercase">
                                             {viewMode === 'fleet' ? 'Desempenho da Operação' : 'Consolidado Financeiro'}
                                         </h3>
                                         <p className="text-xs text-slate-500 font-medium">Visualização mensal de {viewMode === 'fleet' ? 'Eficiência Operacional' : 'Sustentabilidade Financeira'}</p>
                                     </div>
-                                    <div className="flex gap-4 items-center bg-slate-800/80 px-5 py-3 rounded-2xl border border-slate-700/50">
+                                    <div className="flex flex-wrap gap-4 items-center bg-slate-800/80 px-4 sm:px-5 py-3 rounded-2xl border border-slate-700/50 w-full sm:w-auto">
                                         <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-[#10b981]"></div>
-                                            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest whitespace-nowrap">Receitas</span>
+                                            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#10b981]"></div>
+                                            <span className="text-[9px] sm:text-[10px] font-black text-emerald-400 uppercase tracking-widest whitespace-nowrap">Receitas</span>
                                         </div>
                                         <div className="flex items-center gap-2 px-3 py-1 bg-rose-500/10 rounded-full border border-rose-500/20">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-[#f43f5e]"></div>
-                                            <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest whitespace-nowrap">Despesas</span>
+                                            <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#f43f5e]"></div>
+                                            <span className="text-[9px] sm:text-[10px] font-black text-rose-400 uppercase tracking-widest whitespace-nowrap">Despesas</span>
                                         </div>
                                     </div>
                                 </div>

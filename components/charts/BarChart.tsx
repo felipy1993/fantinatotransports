@@ -90,7 +90,7 @@ export const BarChart: React.FC<BarChartProps> = ({ labels, datasets, onHover })
     <div className="w-full h-full flex flex-col font-sans select-none pt-4">
         <div className="flex-1 flex min-h-0 relative">
             {/* Y-Axis Labels */}
-            <div className="w-16 h-full flex flex-col justify-between pr-3 text-[10px] text-slate-500 font-bold text-right border-r border-slate-800/50 pb-6">
+            <div className="w-12 sm:w-16 h-full flex flex-col justify-between pr-2 sm:pr-3 text-[9px] sm:text-[10px] text-slate-500 font-bold text-right border-r border-slate-800/50 pb-6">
                 {Array.from({ length: ticks + 1 }).map((_, i) => {
                     const val = Math.max(0, niceMax - niceTickStep * i);
                     return <div key={i} className="h-0 flex items-center justify-end">{formatValue(val)}</div>
@@ -116,11 +116,11 @@ export const BarChart: React.FC<BarChartProps> = ({ labels, datasets, onHover })
                     </div>
 
                     {/* Bars Container */}
-                    <div className="absolute inset-0 flex items-stretch justify-around px-4 pb-6">
+                    <div className="absolute inset-0 flex items-stretch justify-around px-1 sm:px-4 pb-6">
                         {labels.map((_, labelIndex) => (
                             <div 
                                 key={labelIndex} 
-                                className="flex-1 flex items-end justify-center gap-3 max-w-[140px] relative transition-all duration-300"
+                                className="flex-1 flex items-end justify-center gap-1 sm:gap-3 max-w-[140px] relative transition-all duration-300"
                             >
                                 {/* Vertical Hover Highlight Line */}
                                 {activeIndex === labelIndex && (
@@ -134,7 +134,7 @@ export const BarChart: React.FC<BarChartProps> = ({ labels, datasets, onHover })
                                     return (
                                         <div 
                                             key={dsIndex}
-                                            className="flex-1 min-w-[20px] max-w-[45px] relative transition-all duration-700 ease-out"
+                                            className="flex-1 min-w-[4px] sm:min-w-[20px] max-w-[45px] relative transition-all duration-700 ease-out"
                                             style={{ height: `${heightPercent}%` }}
                                         >
                                             {/* Bar Body with Gradient */}
@@ -168,8 +168,8 @@ export const BarChart: React.FC<BarChartProps> = ({ labels, datasets, onHover })
                 </div>
 
                 {/* X-Axis Labels Section */}
-                <div className="h-6 flex pl-2 relative w-full border-t border-slate-800/50">
-                    <div className="absolute inset-0 flex justify-around px-4 pointer-events-none">
+                <div className="h-6 flex pl-1 sm:pl-2 relative w-full border-t border-slate-800/50">
+                    <div className="absolute inset-0 flex justify-around px-1 sm:px-4 pointer-events-none">
                         {labels.map((label, index) => (
                             <div 
                                 key={index} 
@@ -179,7 +179,7 @@ export const BarChart: React.FC<BarChartProps> = ({ labels, datasets, onHover })
                                 <div className="w-[1px] h-1.5 bg-slate-700"></div>
                                 {/* Label Text */}
                                 <div 
-                                    className={`mt-1.5 text-[10px] font-black tracking-tight transition-all duration-300 ${activeIndex === index ? 'text-blue-400 scale-110' : 'text-slate-500'}`}
+                                    className={`mt-1.5 text-[8px] sm:text-[10px] font-black tracking-tight transition-all duration-300 ${activeIndex === index ? 'text-blue-400 scale-110' : 'text-slate-500'}`}
                                 >
                                     {label}
                                 </div>

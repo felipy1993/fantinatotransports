@@ -150,6 +150,14 @@ export const AccountsPayable: React.FC = () => {
     const filteredTotal = useMemo(() => {
         return filteredItems.reduce((sum, item) => sum + item.totalAmount, 0);
     }, [filteredItems]);
+
+    const filteredWorkshopTotal = useMemo(() => {
+        return filteredItems.filter(item => item.category === 'Despesas Oficina').reduce((sum, item) => sum + item.totalAmount, 0);
+    }, [filteredItems]);
+
+    const filteredOtherTotal = useMemo(() => {
+        return filteredItems.filter(item => item.category === 'Despesas').reduce((sum, item) => sum + item.totalAmount, 0);
+    }, [filteredItems]);
     
     const handleDelete = async (item: PayableItem) => {
          if (window.confirm(`Tem certeza que deseja excluir a despesa "${item.description}"?`)) {
@@ -367,10 +375,22 @@ export const AccountsPayable: React.FC = () => {
                             </Select>
                         </div>
                     </div>
-                     <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/50 p-4 rounded-lg">
-                        <div>
-                            <p className="text-sm text-slate-400">TOTAL FILTRADO</p>
-                            <p className="text-2xl font-bold text-yellow-400">{formatCurrency(filteredTotal)}</p>
+                     <div className="flex flex-wrap items-center justify-between gap-6 bg-slate-900/50 p-4 rounded-lg border border-slate-800/50">
+                        <div className="flex flex-wrap gap-8 items-center">
+                            <div className="min-w-[120px]">
+                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Filtrado</p>
+                                <p className="text-xl sm:text-2xl font-black text-yellow-400">{formatCurrency(filteredTotal)}</p>
+                            </div>
+                            <div className="w-[1px] h-10 bg-slate-800 hidden sm:block"></div>
+                            <div className="min-w-[120px]">
+                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Despesas Oficina</p>
+                                <p className="text-xl sm:text-2xl font-black text-blue-400">{formatCurrency(filteredWorkshopTotal)}</p>
+                            </div>
+                            <div className="w-[1px] h-10 bg-slate-800 hidden sm:block"></div>
+                            <div className="min-w-[120px]">
+                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Outras Despesas</p>
+                                <p className="text-xl sm:text-2xl font-black text-orange-400">{formatCurrency(filteredOtherTotal)}</p>
+                            </div>
                         </div>
                         <div className="flex gap-2 no-print">
                              <Button onClick={() => { setShowAddForm(!showAddForm); setShowEditForm(false); }}>
@@ -514,7 +534,7 @@ export const AccountsPayable: React.FC = () => {
                             {filteredItems.map(item => {
                                 const vehicle = getVehicle(item.vehicleId);
                                 return (
-                                     <tr key={item.id} onDoubleClick={() => handleEditClick(item)} className="border-b border-slate-700 hover:bg-slate-800/50 cursor-pointer">
+                                     <tr key={item.id} onDoubleClick={() => handleEditClick(item)} className="border-b border-slate-700 hover:bg-blue-600/10 transition-colors cursor-pointer group">
                                         <td className="p-3 font-medium text-white">
                                             {item.description}
                                             {item.installments > 1 && (
