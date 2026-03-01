@@ -22,6 +22,8 @@ const AdminRow: React.FC<{ admin: Admin }> = ({ admin }) => {
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     
     const isSelf = session.user?.userId === admin.id;
+    const isFelipe = session.user?.name.startsWith('FELIPE'); // Check if current user is FELIPE
+    const targetIsFelipe = admin.name === 'FELIPE'; // Check if admin being looked at is FELIPE
     const isLastAdmin = admins.length <= 1;
 
     useEffect(() => {
@@ -40,6 +42,16 @@ const AdminRow: React.FC<{ admin: Admin }> = ({ admin }) => {
     };
 
     const handleDelete = async () => {
+        if (targetIsFelipe) {
+            showNotification('O administrador mestre (FELIPE) não pode ser excluído.', 'error');
+            return;
+        }
+
+        if (!isFelipe) {
+            showNotification('Apenas o administrador mestre pode excluir outros administradores.', 'error');
+            return;
+        }
+
         if (!isSelf && !isLastAdmin && window.confirm(`Tem certeza que deseja excluir o administrador ${admin.name}? Esta ação não pode ser desfeita.`)) {
             await deleteAdmin(admin.id);
             showNotification('Administrador excluído com sucesso.', 'success');
@@ -93,8 +105,14 @@ const AdminRow: React.FC<{ admin: Admin }> = ({ admin }) => {
                     <Button 
                         variant="danger" 
                         onClick={handleDelete} 
-                        disabled={isSelf || isLastAdmin} 
-                        title={isSelf ? "Você não pode excluir a si mesmo." : isLastAdmin ? "Não é possível excluir o único administrador." : "Excluir administrador"}
+                        disabled={isSelf || isLastAdmin || targetIsFelipe || !isFelipe} 
+                        title={
+                            targetIsFelipe ? "O administrador mestre não pode ser excluído." :
+                            !isFelipe ? "Apenas o administrador mestre pode excluir administradores." :
+                            isSelf ? "Você não pode excluir a si mesmo." : 
+                            isLastAdmin ? "Não é possível excluir o único administrador." : 
+                            "Excluir administrador"
+                        }
                     >
                         Excluir
                     </Button>
@@ -150,13 +168,20 @@ const AdminRow: React.FC<{ admin: Admin }> = ({ admin }) => {
 
 export const AdminManagement: React.FC = () => {
   const { admins, addAdmin } = useTrips();
+  const { session } = useSession();
   const { showNotification } = useNotification();
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const isFelipe = session.user?.name.startsWith('FELIPE');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFelipe) {
+      showNotification('Apenas o administrador mestre (FELIPE) pode cadastrar novos administradores.', 'error');
+      return;
+    }
     if (name && password) {
       setIsLoading(true);
       await addAdmin({ name, password });
@@ -191,7 +216,12 @@ export const AdminManagement: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading || !isFelipe}
+                title={!isFelipe ? "Apenas o administrador mestre pode cadastrar administradores." : "Adicionar administrador"}
+              >
                 {isLoading ? (
                     'Adicionando...'
                 ) : (

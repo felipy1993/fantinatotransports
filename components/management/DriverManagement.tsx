@@ -11,7 +11,7 @@ import { Driver } from '../../types';
 
 const DriverRow: React.FC<{ driver: Driver }> = ({ driver }) => {
     const { trips, updateDriver, deleteDriver } = useTrips();
-    const { changePassword } = useSession();
+    const { session, changePassword } = useSession();
     const { showNotification } = useNotification();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -20,6 +20,8 @@ const DriverRow: React.FC<{ driver: Driver }> = ({ driver }) => {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [newPassword, setNewPassword] = useState('');
     const [isChangingPassword, setIsChangingPassword] = useState(false);
+    
+    const isFelipe = session.user?.name.startsWith('FELIPE');
 
     useEffect(() => {
         setDriverData(driver);
@@ -39,6 +41,11 @@ const DriverRow: React.FC<{ driver: Driver }> = ({ driver }) => {
     };
 
     const handleDelete = async () => {
+        if (!isFelipe) {
+            showNotification('Apenas o administrador mestre (FELIPE) pode excluir motoristas.', 'error');
+            return;
+        }
+
         if (isDeletable && window.confirm(`Tem certeza que deseja excluir ${driver.name}? Esta ação não pode ser desfeita.`)) {
             await deleteDriver(driver.id);
         }
@@ -104,10 +111,23 @@ const DriverRow: React.FC<{ driver: Driver }> = ({ driver }) => {
                         <ICONS.lock className="w-4 h-4 mr-1" />
                         Alterar Senha
                     </Button>
-                    <Button variant={driver.status === 'active' ? 'secondary' : 'primary'} onClick={handleToggleStatus}>
+                    <Button 
+                        variant={driver.status === 'active' ? 'secondary' : 'primary'} 
+                        onClick={handleToggleStatus}
+                        title="Alterar status"
+                    >
                         {driver.status === 'active' ? 'Inativar' : 'Ativar'}
                     </Button>
-                    <Button variant="danger" onClick={handleDelete} disabled={!isDeletable} title={!isDeletable ? "Motorista não pode ser excluído pois está associado a viagens." : "Excluir motorista"}>
+                    <Button 
+                        variant="danger" 
+                        onClick={handleDelete} 
+                        disabled={!isDeletable || !isFelipe} 
+                        title={
+                            !isFelipe ? "Apenas o administrador mestre pode excluir motoristas." :
+                            !isDeletable ? "Motorista não pode ser excluído pois está associado a viagens." : 
+                            "Excluir motorista"
+                        }
+                    >
                         Excluir
                     </Button>
                 </div>
@@ -163,12 +183,16 @@ const DriverRow: React.FC<{ driver: Driver }> = ({ driver }) => {
 
 export const DriverManagement: React.FC = () => {
   const { drivers, addDriver } = useTrips();
+  const { session } = useSession();
+  const { showNotification } = useNotification();
   const [name, setName] = useState('');
   const [cnh, setCnh] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [dailyRate, setDailyRate] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const isFelipe = session.user?.name.startsWith('FELIPE');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,7 +255,12 @@ export const DriverManagement: React.FC = () => {
                 value={dailyRate || ''}
                 onChange={(e) => setDailyRate(e.target.valueAsNumber || 0)}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+               <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading}
+                title="Adicionar motorista"
+              >
                 {isLoading ? (
                     'Adicionando...'
                 ) : (
