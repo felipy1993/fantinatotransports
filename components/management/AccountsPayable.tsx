@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
+import { AutocompleteInput } from '../ui/AutocompleteInput';
 import { ICONS } from '../../constants';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -398,9 +399,13 @@ export const AccountsPayable: React.FC = () => {
                             </button>
                         </div>
                         <form onSubmit={handleAddExpense} className="space-y-4">
-                            <Input
-                                id="new-desc" label="Descrição" value={newExpenseData.description}
-                                onChange={e => setNewExpenseData(p => ({...p, description: e.target.value.toUpperCase()}))} required
+                            <AutocompleteInput
+                                id="new-desc" 
+                                label="Descrição" 
+                                value={newExpenseData.description}
+                                onChange={e => setNewExpenseData(p => ({...p, description: e.target.value.toUpperCase()}))} 
+                                suggestions={[...new Set(allPayableItems.map(i => i.description))]}
+                                required
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input
@@ -449,9 +454,13 @@ export const AccountsPayable: React.FC = () => {
                             </button>
                         </div>
                         <form onSubmit={handleSaveChanges} className="space-y-4">
-                            <Input
-                                id="edit-desc" label="Descrição" value={editFormData.description}
-                                onChange={e => setEditFormData(p => ({...p, description: e.target.value.toUpperCase()}))} required
+                            <AutocompleteInput
+                                id="edit-desc" 
+                                label="Descrição" 
+                                value={editFormData.description}
+                                onChange={e => setEditFormData(p => ({...p, description: e.target.value.toUpperCase()}))} 
+                                suggestions={[...new Set(allPayableItems.map(i => i.description))]}
+                                required
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input

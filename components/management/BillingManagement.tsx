@@ -47,7 +47,7 @@ export const BillingManagement: React.FC = () => {
             const totalFueling = trip.fueling.reduce((fuelSum, f) => fuelSum + f.totalAmount, 0);
             const totalOtherExpenses = trip.expenses.reduce((expSum, e) => expSum + e.amount, 0);
             const totalTripExpenses = totalFueling + totalOtherExpenses;
-            const driverCommission = (totalFreight * trip.driverCommissionRate) / 100;
+            const driverCommission = (totalFreight * (trip.driverCommissionRate || 0)) / 100;
             const tripNetProfit = totalFreight - driverCommission - totalTripExpenses;
             return sum + tripNetProfit;
         }, 0);
@@ -60,13 +60,25 @@ export const BillingManagement: React.FC = () => {
             ? workshopExpenses.filter(e => e.vehicleId === selectedVehicleId)
             : workshopExpenses;
 
-        const monthlyFixedExpenses = allFixedExpenses
-            .filter(expense => expense.firstPaymentDate?.startsWith(selectedMonth))
-            .reduce((sum, expense) => sum + expense.totalAmount, 0);
+        const getMonthlyExpenseSum = (expenses: (any)[]) => {
+            return expenses.reduce((sum, expense) => {
+                let installmentSum = 0;
+                for (let i = 0; i < expense.installments; i++) {
+                    const dueDate = new Date(`${expense.firstPaymentDate}T00:00:00Z`);
+                    dueDate.setUTCMonth(dueDate.getUTCMonth() + i);
+                    
+                    const dueYear = dueDate.getUTCFullYear();
+                    const dueMonth = (dueDate.getUTCMonth() + 1).toString().padStart(2, '0');
+                    if (`${dueYear}-${dueMonth}` === selectedMonth) {
+                        installmentSum += (expense.totalAmount / expense.installments);
+                    }
+                }
+                return sum + installmentSum;
+            }, 0);
+        };
 
-        const monthlyWorkshopExpenses = allWorkshopExpenses
-            .filter(expense => expense.firstPaymentDate?.startsWith(selectedMonth))
-            .reduce((sum, expense) => sum + expense.totalAmount, 0);
+        const monthlyFixedExpenses = getMonthlyExpenseSum(allFixedExpenses);
+        const monthlyWorkshopExpenses = getMonthlyExpenseSum(allWorkshopExpenses);
             
         const finalProfit = netRevenue - monthlyFixedExpenses - monthlyWorkshopExpenses;
         
@@ -92,34 +104,48 @@ export const BillingManagement: React.FC = () => {
             const totalFueling = trip.fueling.reduce((fuelSum, f) => fuelSum + f.totalAmount, 0);
             const totalOtherExpenses = trip.expenses.reduce((expSum, e) => expSum + e.amount, 0);
             const totalTripExpenses = totalFueling + totalOtherExpenses;
-            const driverCommission = (totalFreight * trip.driverCommissionRate) / 100;
+            const driverCommission = (totalFreight * (trip.driverCommissionRate || 0)) / 100;
             const tripNetProfit = totalFreight - driverCommission - totalTripExpenses;
 
             stats.grossRevenue += tripGrossRevenue;
             stats.netRevenue += tripNetProfit;
-            stats.totalKm += trip.endKm > 0 ? trip.endKm - trip.startKm : 0;
+            stats.totalKm += trip.endKm > 0 ? (trip.endKm - trip.startKm) : 0;
             stats.totalLiters += trip.fueling.reduce((sum, f) => sum + f.liters, 0);
         });
 
         fixedExpenses.forEach(expense => {
-            if (expense.firstPaymentDate?.startsWith(selectedMonth)) {
-                let stats = vehicleBreakdownMap.get(expense.vehicleId);
-                 if (!stats) {
-                    stats = { grossRevenue: 0, netRevenue: 0, workshopExpenses: 0, fixedExpenses: 0, totalKm: 0, totalLiters: 0 };
-                    vehicleBreakdownMap.set(expense.vehicleId, stats);
+            for (let i = 0; i < expense.installments; i++) {
+                const dueDate = new Date(`${expense.firstPaymentDate}T00:00:00Z`);
+                dueDate.setUTCMonth(dueDate.getUTCMonth() + i);
+                const dueYear = dueDate.getUTCFullYear();
+                const dueMonth = (dueDate.getUTCMonth() + 1).toString().padStart(2, '0');
+                
+                if (`${dueYear}-${dueMonth}` === selectedMonth) {
+                    let stats = vehicleBreakdownMap.get(expense.vehicleId);
+                    if (!stats) {
+                        stats = { grossRevenue: 0, netRevenue: 0, workshopExpenses: 0, fixedExpenses: 0, totalKm: 0, totalLiters: 0 };
+                        vehicleBreakdownMap.set(expense.vehicleId, stats);
+                    }
+                    stats.fixedExpenses += (expense.totalAmount / expense.installments);
                 }
-                stats.fixedExpenses += expense.totalAmount;
             }
         });
         
         workshopExpenses.forEach(expense => {
-             if (expense.firstPaymentDate?.startsWith(selectedMonth)) {
-                let stats = vehicleBreakdownMap.get(expense.vehicleId);
-                 if (!stats) {
-                    stats = { grossRevenue: 0, netRevenue: 0, workshopExpenses: 0, fixedExpenses: 0, totalKm: 0, totalLiters: 0 };
-                    vehicleBreakdownMap.set(expense.vehicleId, stats);
+            for (let i = 0; i < expense.installments; i++) {
+                const dueDate = new Date(`${expense.firstPaymentDate}T00:00:00Z`);
+                dueDate.setUTCMonth(dueDate.getUTCMonth() + i);
+                const dueYear = dueDate.getUTCFullYear();
+                const dueMonth = (dueDate.getUTCMonth() + 1).toString().padStart(2, '0');
+                
+                if (`${dueYear}-${dueMonth}` === selectedMonth) {
+                    let stats = vehicleBreakdownMap.get(expense.vehicleId);
+                    if (!stats) {
+                        stats = { grossRevenue: 0, netRevenue: 0, workshopExpenses: 0, fixedExpenses: 0, totalKm: 0, totalLiters: 0 };
+                        vehicleBreakdownMap.set(expense.vehicleId, stats);
+                    }
+                    stats.workshopExpenses += (expense.totalAmount / expense.installments);
                 }
-                stats.workshopExpenses += expense.totalAmount;
             }
         });
 

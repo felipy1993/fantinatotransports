@@ -51,7 +51,7 @@ export const FixedExpenseManagement: React.FC = () => {
   const handleRegisterPayment = (expense: FixedExpense) => {
     if(expense.payments.length >= expense.installments) return;
 
-    const installmentAmount = expense.totalAmount / expense.installments;
+    const installmentAmount = Number((expense.totalAmount / expense.installments).toFixed(2));
     const newPayment: FixedExpensePayment = {
         id: '' + Math.random(),
         date: new Date().toISOString(),
@@ -147,8 +147,8 @@ export const FixedExpenseManagement: React.FC = () => {
               {fixedExpenses.length > 0 ? (
                 fixedExpenses.map((expense) => {
                     const vehicle = getVehicle(expense.vehicleId);
-                    const amountPaid = expense.payments.reduce((sum, p) => sum + p.amount, 0);
-                    const remainingBalance = expense.totalAmount - amountPaid;
+                    const amountPaid = Number(expense.payments.reduce((sum, p) => sum + p.amount, 0).toFixed(2));
+                    const remainingBalance = Math.max(0, Number((expense.totalAmount - amountPaid).toFixed(2)));
                     const isPaidOff = expense.payments.length >= expense.installments;
 
                     return (

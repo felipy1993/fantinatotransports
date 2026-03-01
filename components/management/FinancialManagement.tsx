@@ -4,6 +4,7 @@ import { useNotification } from '../../context/NotificationContext';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
+import { AutocompleteInput } from '../ui/AutocompleteInput';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Tooltip } from '../ui/Tooltip';
 import { ICONS } from '../../constants';
@@ -258,12 +259,13 @@ export const FinancialManagement: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleAddEntry} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <Input
+                            <AutocompleteInput
                                 id="desc"
                                 label="Descrição"
                                 placeholder="Ex: Aluguel da Sede"
                                 value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                onChange={e => setFormData({ ...formData, description: e.target.value.toUpperCase() })}
+                                suggestions={[...new Set(financialEntries.map(e => e.description))]}
                             />
                             <Select
                                 id="cat"
@@ -371,11 +373,12 @@ export const FinancialManagement: React.FC = () => {
                                                             value={editFormData.dueDate}
                                                             onChange={e => setEditFormData({ ...editFormData, dueDate: e.target.value })}
                                                         />
-                                                        <Input
+                                                        <AutocompleteInput
                                                             id={`edit-desc-${item.id}`}
                                                             label="Descrição"
                                                             value={editFormData.description}
-                                                            onChange={e => setEditFormData({ ...editFormData, description: e.target.value })}
+                                                            onChange={e => setEditFormData({ ...editFormData, description: e.target.value.toUpperCase() })}
+                                                            suggestions={[...new Set(financialEntries.map(e => e.description))]}
                                                         />
                                                         <Select
                                                             id={`edit-cat-${item.id}`}

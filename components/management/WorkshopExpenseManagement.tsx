@@ -68,7 +68,7 @@ export const WorkshopExpenseManagement: React.FC = () => {
     
     const handleRegisterPayment = (expense: WorkshopExpense) => {
         if (expense.payments.length >= expense.installments) return;
-        const installmentAmount = expense.totalAmount / expense.installments;
+        const installmentAmount = Number((expense.totalAmount / expense.installments).toFixed(2));
         const newPayment: FixedExpensePayment = {
             id: '' + Math.random(),
             date: new Date().toISOString(),
@@ -224,8 +224,9 @@ export const WorkshopExpenseManagement: React.FC = () => {
                     <tbody>
                     {[...workshopExpenses].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((expense) => {
                         const vehicle = getVehicle(expense.vehicleId);
-                        const isPaidOff = expense.payments.length >= expense.installments;
-                        const installmentAmount = expense.totalAmount / expense.installments;
+                        const totalAmountPaid = Number(expense.payments.reduce((sum, p) => sum + p.amount, 0).toFixed(2));
+                        const isPaidOff = expense.payments.length >= expense.installments || totalAmountPaid >= (expense.totalAmount - 0.01);
+                        const installmentAmount = Number((expense.totalAmount / expense.installments).toFixed(2));
                         
                         const nextPaymentDate = new Date(`${expense.firstPaymentDate}T00:00:00`);
                         nextPaymentDate.setMonth(nextPaymentDate.getMonth() + expense.payments.length);
