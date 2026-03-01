@@ -92,13 +92,13 @@ export const AnalysisDashboard: React.FC = () => {
 
     const kpiData = useMemo(() => {
         const totalRevenue = filteredData.filteredTrips.reduce((sum, trip) => {
-            return sum + trip.cargo.reduce((cargoSum, c) => cargoSum + (c.weight * c.pricePerTon), 0);
+            return sum + (trip.cargo || []).reduce((cargoSum, c) => cargoSum + (c.weight * c.pricePerTon), 0);
         }, 0);
 
         const tripCosts = filteredData.filteredTrips.reduce((sum, trip) => {
-            const tripNetRevenue = trip.cargo.reduce((cargoSum, c) => cargoSum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
-            const tripFueling = trip.fueling.reduce((fuelSum, f) => fuelSum + f.totalAmount, 0);
-            const tripOtherExpenses = trip.expenses.reduce((expSum, e) => expSum + e.amount, 0);
+            const tripNetRevenue = (trip.cargo || []).reduce((cargoSum, c) => cargoSum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
+            const tripFueling = (trip.fueling || []).reduce((fuelSum, f) => fuelSum + f.totalAmount, 0);
+            const tripOtherExpenses = (trip.expenses || []).reduce((expSum, e) => expSum + e.amount, 0);
             const driverCommission = (tripNetRevenue * trip.driverCommissionRate) / 100;
             return sum + tripFueling + tripOtherExpenses + driverCommission;
         }, 0);
@@ -138,10 +138,10 @@ export const AnalysisDashboard: React.FC = () => {
             const monthData = monthlyDataMap.get(key);
 
             if (monthData) {
-                const tripGrossRevenue = trip.cargo.reduce((sum, c) => sum + (c.weight * c.pricePerTon), 0);
-                const tripNetRevenue = trip.cargo.reduce((sum, c) => sum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
-                const tripFueling = trip.fueling.reduce((sum, f) => sum + f.totalAmount, 0);
-                const tripOtherExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
+                const tripGrossRevenue = (trip.cargo || []).reduce((sum, c) => sum + (c.weight * c.pricePerTon), 0);
+                const tripNetRevenue = (trip.cargo || []).reduce((sum, c) => sum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
+                const tripFueling = (trip.fueling || []).reduce((sum, f) => sum + f.totalAmount, 0);
+                const tripOtherExpenses = (trip.expenses || []).reduce((sum, e) => sum + e.amount, 0);
                 const driverCommission = (tripNetRevenue * trip.driverCommissionRate) / 100;
                 const totalTripExpenses = tripFueling + tripOtherExpenses + driverCommission;
 
@@ -325,9 +325,9 @@ export const AnalysisDashboard: React.FC = () => {
                                             let totalKm = 0;
 
                                             filteredData.filteredTrips.forEach(trip => {
-                                                const tripTotalLiters = trip.fueling.reduce((sum, f) => sum + f.liters, 0);
+                                                const tripTotalLiters = (trip.fueling || []).reduce((sum, f) => sum + f.liters, 0);
                                                 const tripTotalKm = trip.endKm > trip.startKm ? trip.endKm - trip.startKm : 0;
-                                                const trechos = calculateTrechoMetrics(trip.trechos, tripTotalLiters, tripTotalKm);
+                                                const trechos = calculateTrechoMetrics(trip.trechos || [], tripTotalLiters, tripTotalKm);
                                                 
                                                 totalKmCarregado += trechos.kmCarregado;
                                                 totalKmVazio += trechos.kmVazio;

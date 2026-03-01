@@ -30,8 +30,8 @@ export const ActiveTripView: React.FC<ActiveTripViewProps> = ({ trip: initialTri
     const [currentExpense, setCurrentExpense] = useState<Omit<Expense, 'id'>>({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
     const [currentFueling, setCurrentFueling] = useState<Omit<Fueling, 'id'>>({ station: '', date: today, km: trip.startKm, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
     
-    const stationSuggestions = [...new Set(trips.flatMap(t => t.fueling).map(f => f.station))];
-    const expenseDescSuggestions = [...new Set(trips.flatMap(t => t.expenses).map(e => e.description))];
+    const stationSuggestions = [...new Set(trips.flatMap(t => t.fueling || []).filter(Boolean).map(f => f.station))];
+    const expenseDescSuggestions = [...new Set(trips.flatMap(t => t.expenses || []).filter(Boolean).map(e => e.description))];
 
     const handleAddExpense = async () => {
         if (currentExpense.description && currentExpense.amount > 0) {

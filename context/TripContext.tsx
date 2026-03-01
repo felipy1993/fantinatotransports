@@ -139,22 +139,26 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
   const addTrip = async (trip: Omit<Trip, 'id' | 'createdAt'>) => {
-    const startDate = new Date(trip.startDate + 'T00:00:00');
-    const year = startDate.getFullYear();
-    const month = startDate.getMonth();
+    let monthlyTripNumber = trip.monthlyTripNumber;
     
-    // Filtro manual, pois o estado 'trips' pode não estar atualizado imediatamente
-    const tripsInMonthForDriver = trips.filter(t => {
-        if (t.driverId !== trip.driverId) return false;
-        const tDate = new Date(t.startDate + 'T00:00:00');
-        return tDate.getFullYear() === year && tDate.getMonth() === month;
-    });
+    // Only calculate monthly trip number if it wasn't provided (e.g., brand new trip)
+    if (!monthlyTripNumber && trip.startDate && trip.driverId) {
+        const startDate = new Date(trip.startDate + 'T00:00:00');
+        const year = startDate.getFullYear();
+        const month = startDate.getMonth();
+        
+        const tripsInMonthForDriver = trips.filter(t => {
+            if (t.driverId !== trip.driverId) return false;
+            if (!t.startDate) return false;
+            const tDate = new Date(t.startDate + 'T00:00:00');
+            return tDate.getFullYear() === year && tDate.getMonth() === month;
+        });
 
-    const monthlyTripNumber = tripsInMonthForDriver.length + 1;
+        monthlyTripNumber = tripsInMonthForDriver.length + 1;
+    }
     
     const newTrip = {
       ...trip,
-      createdAt: new Date().toISOString(),
       monthlyTripNumber,
     };
     const created = await dataService.create('trips', newTrip);
@@ -162,7 +166,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   const updateTrip = async (updatedTrip: Trip) => {
-    const { id, ...tripData } = updatedTrip;
+    const { id, createdAt, ...tripData } = updatedTrip;
     const updated = await dataService.update('trips', id, tripData);
     setTrips(prev => prev.map(t => t.id === id ? updated as Trip : t));
   };

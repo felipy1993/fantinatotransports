@@ -44,6 +44,7 @@ export const Dashboard: React.FC<{ setView: (view: View) => void }> = ({ setView
   
   const driverTrips = trips.filter(t => t.driverId === currentDriver.id);
   const activeTrip = driverTrips.find(t => t.status === TripStatus.IN_PROGRESS);
+  const draftTrip = driverTrips.find(t => t.status === TripStatus.PLANNED && (!t.origin || !t.destination || !t.startKm));
 
   const completedTrips = driverTrips.filter(t => t.status === TripStatus.COMPLETED).length;
   const totalKm = driverTrips.reduce((acc, t) => acc + (t.endKm > 0 ? t.endKm - t.startKm : 0), 0);
@@ -52,7 +53,7 @@ export const Dashboard: React.FC<{ setView: (view: View) => void }> = ({ setView
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">Olá, {currentDriver.name}!</h1>
 
-      {activeTrip ? (
+      {activeTrip && (
         <Card className="bg-gradient-to-r from-blue-600 to-blue-800 border-blue-500">
           <CardHeader>
             <CardTitle className="text-white">Viagem em Andamento</CardTitle>
@@ -70,7 +71,31 @@ export const Dashboard: React.FC<{ setView: (view: View) => void }> = ({ setView
             </div>
           </CardContent>
         </Card>
-      ) : (
+      )}
+
+      {draftTrip && (
+        <Card className="bg-amber-500/10 border-amber-500/30">
+          <CardHeader>
+            <CardTitle className="text-amber-500 flex items-center gap-2">
+                <ICONS.pencil className="w-5 h-5" />
+                Rascunho de Viagem Encontrado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <p className="text-lg font-bold text-white">{draftTrip.origin || 'Local não informado'} &rarr; {draftTrip.destination || 'Local não informado'}</p>
+                <p className="text-slate-400 text-sm italic">Você começou este preenchimento e ele foi salvo no banco de dados.</p>
+              </div>
+              <Button onClick={() => setView({ type: 'editTrip', tripId: draftTrip.id })} className="bg-amber-600 text-white hover:bg-amber-700 border-none mt-4 md:mt-0">
+                Continuar Preenchimento
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!activeTrip && !draftTrip && (
         <Card>
             <CardContent className="text-center py-8">
                 <p className="text-slate-300">Nenhuma viagem em andamento no momento.</p>

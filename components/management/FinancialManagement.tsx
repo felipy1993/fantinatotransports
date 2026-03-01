@@ -154,13 +154,14 @@ export const FinancialManagement: React.FC = () => {
         try {
             await deleteFinancialEntry(id);
             showNotification('Lançamento excluído com sucesso!', 'success');
-        } catch (error) {
+        } catch (error: any) {
             showNotification('Erro ao excluir lançamento.', 'error');
+            alert('Erro detalhado excluir: ' + error?.message);
         }
     };
 
     const handlePay = async (item: FinancialItem) => {
-        const remaining = item.amount - item.amountPaid;
+        const remaining = Number(item.amount || 0) - item.amountPaid;
         if (remaining <= 0) return;
 
         if (!window.confirm(`Confirmar pagamento de ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}?`)) return;
@@ -181,8 +182,9 @@ export const FinancialManagement: React.FC = () => {
             const { status, amountPaid, ...cleanEntry } = updatedEntry as any;
             await updateFinancialEntry(cleanEntry);
             showNotification('Pagamento registrado com sucesso!', 'success');
-        } catch (error) {
+        } catch (error: any) {
             showNotification('Erro ao registrar pagamento.', 'error');
+            alert('Erro detalhado pagar: ' + error?.message);
         }
     };
 
@@ -329,7 +331,7 @@ export const FinancialManagement: React.FC = () => {
                                                 {categories.find(c => c.id === item.categoryId)?.name || 'N/A'}
                                             </td>
                                             <td className="p-4 text-right text-white font-bold">
-                                                {item.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                                {Number(item.amount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                             </td>
                                             <td className="p-4 text-center">
                                                 <span className={`px-2 py-1 rounded text-[10px] font-bold border ${getStatusColor(item.status)}`}>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTrips } from '../../context/TripContext';
 import { useSession } from '../../context/SessionContext';
-import { TripStatus } from '../../types';
+import { TripStatus, Trip } from '../../types';
 import type { View } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -11,8 +11,18 @@ interface TripListProps {
   setView: (view: View) => void;
 }
 
-const getStatusClass = (status: TripStatus) => {
-  switch (status) {
+const getTripStatusLabel = (trip: Trip) => {
+  if (trip.status === TripStatus.PLANNED && (!trip.origin || !trip.destination || !trip.startKm)) {
+    return 'Rascunho';
+  }
+  return trip.status;
+};
+
+const getTripStatusClass = (trip: Trip) => {
+  if (trip.status === TripStatus.PLANNED && (!trip.origin || !trip.destination || !trip.startKm)) {
+    return 'bg-amber-600 text-white';
+  }
+  switch (trip.status) {
     case TripStatus.PLANNED:
       return 'bg-blue-500 text-white';
     case TripStatus.IN_PROGRESS:
@@ -185,8 +195,8 @@ export const TripList: React.FC<TripListProps> = ({ setView }) => {
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                   <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusClass(trip.status)}`}>
-                    {trip.status}
+                   <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getTripStatusClass(trip)}`}>
+                    {getTripStatusLabel(trip)}
                    </span>
                    <div className="flex items-center gap-2">
                      <Button variant="secondary" onClick={() => setView({ type: 'editTrip', tripId: trip.id })}>

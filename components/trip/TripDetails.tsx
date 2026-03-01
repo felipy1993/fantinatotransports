@@ -40,23 +40,23 @@ const calculateDays = (start: string, end: string) => {
 };
 
 const calculateTotals = (trip: Trip) => {
-    const totalFreight = trip.cargo.reduce((sum, c) => sum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
-    const totalOtherExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalFueling = trip.fueling.reduce((sum, f) => sum + f.totalAmount, 0);
+    const totalFreight = (trip.cargo || []).reduce((sum, c) => sum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
+    const totalOtherExpenses = (trip.expenses || []).reduce((sum, e) => sum + e.amount, 0);
+    const totalFueling = (trip.fueling || []).reduce((sum, f) => sum + f.totalAmount, 0);
     
     // Recuperar totalDailyAmount salvo ou recalcular se não existir
     const travelDays = calculateDays(trip.startDate, trip.endDate);
     const totalDailyAmount = trip.totalDailyAmount || (travelDays * (trip.dailyRate || 0));
     
     const totalExpenses = totalOtherExpenses + totalFueling + totalDailyAmount;
-    const driverCommission = (totalFreight * trip.driverCommissionRate) / 100;
+    const driverCommission = (totalFreight * (trip.driverCommissionRate || 0)) / 100;
     const netBalance = totalFreight - driverCommission - totalExpenses;
-    const totalKm = trip.endKm > 0 ? trip.endKm - trip.startKm : 0;
-    const totalReceived = trip.receivedPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalKm = (trip.endKm || 0) > (trip.startKm || 0) ? (trip.endKm || 0) - (trip.startKm || 0) : 0;
+    const totalReceived = (trip.receivedPayments || []).reduce((sum, p) => sum + p.amount, 0);
     const balanceToReceive = totalFreight - totalReceived;
-    const totalLiters = trip.fueling.reduce((sum, f) => sum + f.liters, 0);
+    const totalLiters = (trip.fueling || []).reduce((sum, f) => sum + f.liters, 0);
     const fuelEfficiency = totalLiters > 0 && totalKm > 0 ? (totalKm / totalLiters).toFixed(2) : 'N/A';
-    const trechoMetrics = calculateTrechoMetrics(trip.trechos, totalLiters, totalKm);
+    const trechoMetrics = calculateTrechoMetrics(trip.trechos || [], totalLiters, totalKm);
 
     return { totalFreight, totalExpenses, totalOtherExpenses, totalFueling, totalDailyAmount, travelDays, driverCommission, netBalance, totalKm, totalReceived, balanceToReceive, fuelEfficiency, trechoMetrics };
 }
@@ -81,7 +81,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
         date: today,
     });
 
-    const expenseDescSuggestions = [...new Set(trips.flatMap(t => t.expenses).map(e => e.description))];
+    const expenseDescSuggestions = [...new Set(trips.flatMap(t => t.expenses || []).filter(Boolean).map(e => e.description))];
 
     if (!trip) {
         return <Card><CardContent>Viagem não encontrada.</CardContent></Card>;
@@ -94,7 +94,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
     const handleAddExpense = async () => {
         if (newExpense.description && newExpense.amount > 0) {
             const expenseToAdd: Expense = { ...newExpense, id: '' + Math.random() };
-            const updatedTrip = { ...trip, expenses: [...trip.expenses, expenseToAdd] };
+            const updatedTrip = { ...trip, expenses: [...(trip.expenses || []), expenseToAdd] };
             await updateTrip(updatedTrip);
             setNewExpense({
                 category: ExpenseCategory.OTHER,
@@ -111,7 +111,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
     const handleAddReceivedPayment = async () => {
         if (newReceivedPayment.amount > 0) {
             const paymentToAdd: ReceivedPayment = { ...newReceivedPayment, id: '' + Math.random() };
-            const updatedTrip = { ...trip, receivedPayments: [...trip.receivedPayments, paymentToAdd] };
+            const updatedTrip = { ...trip, receivedPayments: [...(trip.receivedPayments || []), paymentToAdd] };
             await updateTrip(updatedTrip);
             setNewReceivedPayment({
                 type: ReceivedPaymentType.BALANCE,
@@ -127,17 +127,17 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
 
 
     const handleRemoveExpense = async (expenseId: string) => {
-        const updatedTrip = { ...trip, expenses: trip.expenses.filter(e => e.id !== expenseId) };
+        const updatedTrip = { ...trip, expenses: (trip.expenses || []).filter(e => e.id !== expenseId) };
         await updateTrip(updatedTrip);
     };
     
     const handleRemoveFueling = async (fuelingId: string) => {
-        const updatedTrip = { ...trip, fueling: trip.fueling.filter(f => f.id !== fuelingId) };
+        const updatedTrip = { ...trip, fueling: (trip.fueling || []).filter(f => f.id !== fuelingId) };
         await updateTrip(updatedTrip);
     };
     
     const handleRemoveReceivedPayment = async (paymentId: string) => {
-        const updatedTrip = { ...trip, receivedPayments: trip.receivedPayments.filter(p => p.id !== paymentId) };
+        const updatedTrip = { ...trip, receivedPayments: (trip.receivedPayments || []).filter(p => p.id !== paymentId) };
         await updateTrip(updatedTrip);
     };
 
@@ -308,7 +308,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
             <Card className="printable-card overflow-hidden">
                 {/* Print Only Header */}
                 <div className="print-header">
-                    <h1>CENTRAL TRUCK</h1>
+                    <h1>FANTINATO</h1>
                     <p>Comprovante de Acerto de Viagem</p>
                     <p>Emissão: {new Date().toLocaleString('pt-BR')}</p>
                 </div>
@@ -317,7 +317,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="flex-1">
                             <CardTitle className="text-xl md:text-2xl">
-                                Acerto: {trip.origin} &larr;&rarr; {trip.destination}
+                                Acerto: {trip.origin || 'Origem Pendente'} &larr;&rarr; {trip.destination || 'Destino Pendente'}
                             </CardTitle>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-slate-400 text-sm">
                                 <span className="flex items-center gap-1.5"><ICONS.driver className="w-4 h-4" /> {driver?.name}</span>
@@ -346,7 +346,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                                 Detalhamento de Cargas
                             </h3>
                             <table className="print-table w-full text-sm">
-                                <thead>
+                                 <thead>
                                     <tr className="bg-slate-800 text-slate-300 text-left">
                                         <th className="p-3 rounded-tl-lg">Tipo da Carga</th>
                                         <th className="p-3">Peso</th>
@@ -356,7 +356,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {trip.cargo.length > 0 ? trip.cargo.map(cargo => (
+                                    {(trip.cargo || []).length > 0 ? (trip.cargo || []).map(cargo => (
                                         <tr key={cargo.id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
                                             <td className="p-3 text-white">{cargo.type}</td>
                                             <td className="p-3">{cargo.weight}t</td>
@@ -390,7 +390,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {trip.fueling.map(fuel => (
+                                        {(trip.fueling || []).map(fuel => (
                                             <tr key={fuel.id} className="border-b border-slate-800/50">
                                                 <td className="py-2 text-slate-300">
                                                     <div className="font-medium text-white">{fuel.station}</div>
@@ -414,7 +414,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {trip.expenses.map(exp => (
+                                        {(trip.expenses || []).map(exp => (
                                             <tr key={exp.id} className="border-b border-slate-800/50">
                                                 <td className="py-2 text-slate-300">
                                                     <div className="font-medium text-white">{exp.description}</div>
@@ -440,7 +440,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                                 <InfoItem label="Início" value={new Date(trip.startDate + 'T00:00:00').toLocaleDateString('pt-BR')} />
                                 <InfoItem label="Fim" value={trip.endDate ? new Date(trip.endDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Em curso'} />
                                 <hr className="border-slate-700/50 my-1" />
-                                <InfoItem label="KM Inicial" value={`${trip.startKm} km`} />
+                                <InfoItem label="KM Inicial" value={trip.startKm ? `${trip.startKm} km` : 'Não informado'} />
                                 <InfoItem label="KM Final" value={trip.endKm > 0 ? `${trip.endKm} km` : '-'} />
                                 <InfoItem label="KM Rodados" value={`${totals.totalKm} km`} />
                                 <InfoItem label="Dias de Viagem" value={`${totals.travelDays} dias`} />
@@ -456,7 +456,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                         <section className="bg-slate-800/30 rounded-xl p-5 border border-slate-700/50 space-y-4">
                             <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider print-section-title">Pagamentos Recebidos</h3>
                             <div className="space-y-1">
-                                {trip.receivedPayments.map(p => (
+                                {(trip.receivedPayments || []).map(p => (
                                     <div key={p.id} className="flex justify-between items-center py-2 border-b border-slate-700/30 last:border-0">
                                         <div className="text-[11px]">
                                             <div className="text-white font-medium">{p.type}</div>
@@ -577,7 +577,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                         </div>
                         <div className="text-center">
                             <div className="border-t border-black w-full mb-2"></div>
-                            <p className="text-sm font-bold">CENTRAL TRUCK</p>
+                            <p className="text-sm font-bold">FANTINATO</p>
                             <p className="text-xs">Responsável</p>
                         </div>
                     </div>

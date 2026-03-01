@@ -1,0 +1,886 @@
+    [
+    {
+        "id": "_pb_users_auth_",
+        "name": "users",
+        "type": "auth",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "users_name",
+            "name": "name",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "users_avatar",
+            "name": "avatar",
+            "type": "file",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "mimeTypes": [
+                "image/jpeg",
+                "image/png",
+                "image/svg+xml",
+                "image/gif",
+                "image/webp"
+            ],
+            "thumbs": null,
+            "maxSelect": 1,
+            "maxSize": 5242880,
+            "protected": false
+            }
+        }
+        ],
+        "indexes": [],
+        "listRule": "id = @request.auth.id",
+        "viewRule": "id = @request.auth.id",
+        "createRule": "",
+        "updateRule": "id = @request.auth.id",
+        "deleteRule": "id = @request.auth.id",
+        "options": {
+        "allowEmailAuth": true,
+        "allowOAuth2Auth": true,
+        "allowUsernameAuth": true,
+        "exceptEmailDomains": null,
+        "manageRule": null,
+        "minPasswordLength": 8,
+        "onlyEmailDomains": null,
+        "onlyVerified": false,
+        "requireEmail": false
+        }
+    },
+    {
+        "id": "cigsco6x4el6yb6",
+        "name": "admins",
+        "type": "base",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "8caqnwiw",
+            "name": "name",
+            "type": "text",
+            "required": true,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "kizlq7fu",
+            "name": "passwordHash",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "nxqjcks8",
+            "name": "salt",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "auhe5zlye23xack",
+        "name": "drivers",
+        "type": "base",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "lqgrawkq",
+            "name": "name",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "bqwmsyuq",
+            "name": "cnh",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "kegz0jki",
+            "name": "phone",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "9j88pswi",
+            "name": "status",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "1v5cxmvi",
+            "name": "passwordHash",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "fobdx4bm",
+            "name": "salt",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "wqetvtvv",
+            "name": "dailyRate",
+            "type": "number",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "noDecimal": false
+            }
+        }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "no5qjqlvqw8ai98",
+        "name": "financialCategories",
+        "type": "base",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "6xe84phb",
+            "name": "name",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "zolmnea7",
+            "name": "createdAt",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "khutbl25e2acp0z",
+        "name": "financialEntries",
+        "type": "base",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "uysm3fsa",
+            "name": "description",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "vslflynh",
+            "name": "createdAt",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "mum0elss",
+            "name": "payments",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        },
+        {
+            "id": "field_catid",
+            "name": "categoryId",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "id": "field_amount",
+            "name": "amount",
+            "type": "number",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "noDecimal": false
+            }
+        },
+        {
+            "id": "field_duedate",
+            "name": "dueDate",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "t9efn66oflo7zpr",
+        "name": "fixedExpenses",
+        "type": "base",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "pcpdh2ib",
+            "name": "name",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "nnz8ap2e",
+            "name": "createdAt",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "cypnxxsn",
+            "name": "payments",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        },
+        {
+            "id": "f_vid2",
+            "name": "vehicleId",
+            "type": "text",
+            "options": {}
+        },
+        {
+            "id": "f_ta2",
+            "name": "totalAmount",
+            "type": "number",
+            "options": {}
+        },
+        {
+            "id": "f_inst2",
+            "name": "installments",
+            "type": "number",
+            "options": {}
+        },
+        {
+            "id": "f_fpd2",
+            "name": "firstPaymentDate",
+            "type": "text",
+            "options": {}
+        },
+        {
+            "id": "f_cat2",
+            "name": "category",
+            "type": "text",
+            "options": {}
+        },
+        {
+            "id": "f_desc2",
+            "name": "description",
+            "type": "text",
+            "options": {}
+        }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "n5k5vryfh8u8ar3",
+        "name": "trips",
+        "type": "base",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "m0fjxbin",
+            "name": "driverId",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "684yev7i",
+            "name": "vehicleId",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "0piogq1k",
+            "name": "startDate",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "m338llhc",
+            "name": "endDate",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "zuwekqbw",
+            "name": "createdAt",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "4wganozm",
+            "name": "monthlyTripNumber",
+            "type": "number",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "noDecimal": false
+            }
+        },
+        {
+            "id": "field_origin",
+            "name": "origin",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "id": "field_destination",
+            "name": "destination",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "id": "field_status",
+            "name": "status",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "id": "field_startKm",
+            "name": "startKm",
+            "type": "number",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "noDecimal": false
+            }
+        },
+        {
+            "id": "field_endKm",
+            "name": "endKm",
+            "type": "number",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "noDecimal": false
+            }
+        },
+        {
+            "id": "field_driverCommissionRate",
+            "name": "driverCommissionRate",
+            "type": "number",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "noDecimal": false
+            }
+        },
+        {
+            "id": "field_dailyRate",
+            "name": "dailyRate",
+            "type": "number",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "noDecimal": false
+            }
+        },
+        {
+            "id": "field_totalDailyAmount",
+            "name": "totalDailyAmount",
+            "type": "number",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "noDecimal": false
+            }
+        },
+        {
+            "id": "field_cargo",
+            "name": "cargo",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        },
+        {
+            "id": "field_expenses",
+            "name": "expenses",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        },
+        {
+            "id": "field_fueling",
+            "name": "fueling",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        },
+        {
+            "id": "field_trechos",
+            "name": "trechos",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        },
+        {
+            "id": "field_receivedPayments",
+            "name": "receivedPayments",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        },
+        {
+            "id": "field_signature",
+            "name": "signature",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "2r7x6hazjdmh8sz",
+        "name": "vehicles",
+        "type": "base",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "pmm3gqfx",
+            "name": "plate",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "vg8ubn5w",
+            "name": "model",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "field_chassi",
+            "name": "chassi",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+                "min": null,
+                "max": null,
+                "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "ltg4b20x",
+            "name": "status",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    },
+    {
+        "id": "psnzc4p7ccotsm6",
+        "name": "workshopExpenses",
+        "type": "base",
+        "system": false,
+        "schema": [
+        {
+            "system": false,
+            "id": "zrhgk20j",
+            "name": "description",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "vvlzdlud",
+            "name": "createdAt",
+            "type": "text",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "min": null,
+            "max": null,
+            "pattern": ""
+            }
+        },
+        {
+            "system": false,
+            "id": "aw4mcagg",
+            "name": "payments",
+            "type": "json",
+            "required": false,
+            "presentable": false,
+            "unique": false,
+            "options": {
+            "maxSize": 2000000
+            }
+        },
+        {
+            "id": "field_vid",
+            "name": "vehicleId",
+            "type": "text",
+            "options": {}
+        },
+        {
+            "id": "field_ta_ws",
+            "name": "totalAmount",
+            "type": "number",
+            "options": {}
+        },
+        {
+            "id": "field_inst_ws",
+            "name": "installments",
+            "type": "number",
+            "options": {}
+        },
+        {
+            "id": "field_fpd_ws",
+            "name": "firstPaymentDate",
+            "type": "text",
+            "options": {}
+        },
+        {
+            "id": "field_sd_ws",
+            "name": "serviceDate",
+            "type": "text",
+            "options": {}
+        }
+        ],
+        "indexes": [],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": "",
+        "options": {}
+    }
+    ]

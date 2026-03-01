@@ -61,11 +61,11 @@ export const BillingManagement: React.FC = () => {
             : workshopExpenses;
 
         const monthlyFixedExpenses = allFixedExpenses
-            .filter(expense => expense.firstPaymentDate.startsWith(selectedMonth))
+            .filter(expense => expense.firstPaymentDate?.startsWith(selectedMonth))
             .reduce((sum, expense) => sum + expense.totalAmount, 0);
 
         const monthlyWorkshopExpenses = allWorkshopExpenses
-            .filter(expense => expense.firstPaymentDate.startsWith(selectedMonth))
+            .filter(expense => expense.firstPaymentDate?.startsWith(selectedMonth))
             .reduce((sum, expense) => sum + expense.totalAmount, 0);
             
         const finalProfit = netRevenue - monthlyFixedExpenses - monthlyWorkshopExpenses;
@@ -102,7 +102,7 @@ export const BillingManagement: React.FC = () => {
         });
 
         fixedExpenses.forEach(expense => {
-            if (expense.firstPaymentDate.startsWith(selectedMonth)) {
+            if (expense.firstPaymentDate?.startsWith(selectedMonth)) {
                 let stats = vehicleBreakdownMap.get(expense.vehicleId);
                  if (!stats) {
                     stats = { grossRevenue: 0, netRevenue: 0, workshopExpenses: 0, fixedExpenses: 0, totalKm: 0, totalLiters: 0 };
@@ -113,7 +113,7 @@ export const BillingManagement: React.FC = () => {
         });
         
         workshopExpenses.forEach(expense => {
-             if (expense.firstPaymentDate.startsWith(selectedMonth)) {
+             if (expense.firstPaymentDate?.startsWith(selectedMonth)) {
                 let stats = vehicleBreakdownMap.get(expense.vehicleId);
                  if (!stats) {
                     stats = { grossRevenue: 0, netRevenue: 0, workshopExpenses: 0, fixedExpenses: 0, totalKm: 0, totalLiters: 0 };

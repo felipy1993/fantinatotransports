@@ -94,7 +94,7 @@ export const LoginScreen: React.FC = () => {
                         {/* Logo in header - No circle */}
                         <div className="relative z-10 flex flex-col items-center">
                             <div className="flex items-center justify-center mb-2 overflow-hidden">
-                                <img src="assets/logo.png" alt="Logo" className="w-48 h-24 object-contain" onError={(e) => {
+                                <img src="assets/logo.png?v=1.3" alt="Logo" className="w-64 h-auto object-contain" onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                     const fallback = document.getElementById('fallback-icon');
                                     if (fallback) fallback.style.opacity = '1';
@@ -110,7 +110,6 @@ export const LoginScreen: React.FC = () => {
                     <div className="p-8 sm:p-10">
                         {/* Title and subtitle */}
                         <div className="text-center mb-8">
-                            <h1 className="text-4xl font-bold text-white mb-2">Central Truck</h1>
                             <div className="flex items-center justify-center gap-2 mb-4">
                                 <div className="h-px w-8 bg-gradient-to-r from-transparent to-orange-500"></div>
                                 <p className="text-orange-400 text-sm font-semibold uppercase tracking-wider">Transportadora</p>

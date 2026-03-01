@@ -9,7 +9,9 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { ICONS } from '../../constants';
 import { AutocompleteInput } from '../ui/AutocompleteInput';
+import { LocationAutocompleteInput } from '../ui/LocationAutocompleteInput';
 import { calculateTrechoMetrics } from '../../utils/tripMetrics';
+import { useNotification } from '../../context/NotificationContext';
 
 type TripFormProps = {
     setView: (view: any) => void;
@@ -21,9 +23,11 @@ const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toIS
 export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip }) => {
     const { drivers, vehicles, trips, addTrip, updateTrip } = useTrips();
     const { currentDriverId } = useSession();
+    const { showNotification } = useNotification();
     const [isSaving, setIsSaving] = useState(false);
+    const [lastSavedDraft, setLastSavedDraft] = useState<string | null>(null);
 
-    const [trip, setTrip] = useState<Omit<Trip, 'id' | 'createdAt'>>({
+    const initialFormState = {
         driverId: existingTrip?.driverId || currentDriverId || '',
         vehicleId: existingTrip?.vehicleId || '',
         origin: existingTrip?.origin || '',
@@ -41,14 +45,45 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
         receivedPayments: existingTrip?.receivedPayments || [],
         dailyRate: existingTrip?.dailyRate || 0,
         totalDailyAmount: existingTrip?.totalDailyAmount || 0,
-    });
+    };
+
+    const getDraft = () => {
+        if (existingTrip) return null;
+        const saved = localStorage.getItem('trip_form_draft');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    };
+
+    const [trip, setTrip] = useState<Omit<Trip, 'id' | 'createdAt'>>(getDraft() || initialFormState);
+
+    React.useEffect(() => {
+        if (!existingTrip) {
+            const timeout = setTimeout(() => {
+                localStorage.setItem('trip_form_draft', JSON.stringify(trip));
+                setLastSavedDraft(new Date().toLocaleTimeString('pt-BR'));
+            }, 1000);
+            return () => clearTimeout(timeout);
+        }
+    }, [trip, existingTrip]);
+
+    const handleClearDraft = () => {
+        localStorage.removeItem('trip_form_draft');
+        setTrip(initialFormState);
+        setLastSavedDraft(null);
+    };
 
     // Autocomplete suggestions
-    const originSuggestions = [...new Set(trips.map(t => t.origin))];
-    const destinationSuggestions = [...new Set(trips.map(t => t.destination))];
-    const cargoTypeSuggestions = [...new Set(trips.flatMap(t => t.cargo).map(c => c.type))];
-    const stationSuggestions = [...new Set(trips.flatMap(t => t.fueling).map(f => f.station))];
-    const expenseDescSuggestions = [...new Set(trips.flatMap(t => t.expenses).map(e => e.description))];
+    const originSuggestions = [...new Set(trips.map(t => t.origin).filter(Boolean))];
+    const destinationSuggestions = [...new Set(trips.map(t => t.destination).filter(Boolean))];
+    const cargoTypeSuggestions = [...new Set(trips.flatMap(t => t.cargo || []).filter(Boolean).map(c => c.type))];
+    const stationSuggestions = [...new Set(trips.flatMap(t => t.fueling || []).filter(Boolean).map(f => f.station))];
+    const expenseDescSuggestions = [...new Set(trips.flatMap(t => t.expenses || []).filter(Boolean).map(e => e.description))];
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -129,24 +164,61 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
-        if (existingTrip) {
-            const updatedTripData: Trip = {
-                ...existingTrip,
-                ...trip,
-                totalDailyAmount: calculateDays(trip.startDate, trip.endDate) * (trip.dailyRate || 0)
-            };
-            await updateTrip(updatedTripData);
-            setView({ type: 'viewTrip', tripId: existingTrip.id });
-        } else {
+        try {
+            if (existingTrip) {
+                const updatedTripData: Trip = {
+                    ...existingTrip,
+                    ...trip,
+                    totalDailyAmount: calculateDays(trip.startDate, trip.endDate) * (trip.dailyRate || 0)
+                };
+                await updateTrip(updatedTripData);
+                showNotification('Viagem atualizada com sucesso!', 'success');
+                setView({ type: 'viewTrip', tripId: existingTrip.id });
+            } else {
+                const isMissingData = !trip.driverId || !trip.vehicleId || !trip.origin || !trip.destination || !trip.startKm;
+                const tripToSave = {
+                    ...trip,
+                    status: isMissingData ? TripStatus.PLANNED : (trip.status === TripStatus.PLANNED ? TripStatus.IN_PROGRESS : trip.status),
+                    totalDailyAmount: calculateDays(trip.startDate, trip.endDate) * (trip.dailyRate || 0)
+                };
+                await addTrip(tripToSave);
+                localStorage.removeItem('trip_form_draft');
+                showNotification(isMissingData ? 'Rascunho salvo no banco!' : 'Viagem iniciada com sucesso!', 'success');
+                setView({ type: 'dashboard' });
+            }
+        } catch (error) {
+            console.error('Erro ao salvar viagem:', error);
+            showNotification('Erro ao salvar no banco de dados. Verifique sua conexão.', 'error');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSaveAsDraft = async () => {
+        setIsSaving(true);
+        try {
             const tripToSave = {
                 ...trip,
-                status: trip.status === TripStatus.PLANNED ? TripStatus.IN_PROGRESS : trip.status,
+                status: TripStatus.PLANNED,
                 totalDailyAmount: calculateDays(trip.startDate, trip.endDate) * (trip.dailyRate || 0)
             };
-            await addTrip(tripToSave);
-            setView({ type: 'dashboard' });
+            
+            if (existingTrip) {
+                await updateTrip({ ...existingTrip, ...tripToSave });
+                showNotification('Rascunho atualizado!', 'success');
+                setView({ type: 'viewTrip', tripId: existingTrip.id });
+            } else {
+                await addTrip(tripToSave);
+                localStorage.removeItem('trip_form_draft');
+                showNotification('Rascunho salvo no banco de dados!', 'success');
+                setView({ type: 'dashboard' });
+            }
+        } catch (error) {
+            console.error('Erro ao salvar rascunho:', error);
+            showNotification('Erro ao salvar rascunho. Verifique sua conexão.', 'error');
+        } finally {
+            setIsSaving(false);
         }
-        setIsSaving(false);
     };
 
     const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -196,26 +268,43 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             <Card>
-                <CardHeader><CardTitle>{existingTrip ? 'Editar Viagem' : 'Criar Nova Viagem'}</CardTitle></CardHeader>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>{existingTrip ? 'Editar Viagem' : 'Criar Nova Viagem'}</CardTitle>
+                        {!existingTrip && (
+                            <div className="flex items-center gap-3">
+                                {lastSavedDraft && (
+                                    <span className="text-[10px] text-slate-500 italic flex items-center gap-1">
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                        Rascunho salvo às {lastSavedDraft}
+                                    </span>
+                                )}
+                                <Button type="button" variant="secondary" onClick={handleClearDraft} className="text-xs py-1 h-auto">
+                                    Limpar Rascunho
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Select id="driverId" name="driverId" label="Motorista" value={trip.driverId} onChange={handleInputChange} required disabled={!!currentDriverId}>
+                    <Select id="driverId" name="driverId" label="Motorista" value={trip.driverId} onChange={handleInputChange} disabled={!!currentDriverId}>
                         <option value="">Selecione...</option>
                         {availableDrivers.map(d => <option key={d.id} value={d.id}>{d.name} {d.status === 'inactive' ? '(Inativo)' : ''}</option>)}
                     </Select>
-                    <Select id="vehicleId" name="vehicleId" label="Veículo" value={trip.vehicleId} onChange={handleInputChange} required>
+                    <Select id="vehicleId" name="vehicleId" label="Veículo" value={trip.vehicleId} onChange={handleInputChange}>
                         <option value="">Selecione...</option>
                         {availableVehicles.map(v => <option key={v.id} value={v.id}>{v.plate} - {v.model} {v.status === 'inactive' ? '(Inativo)' : ''}</option>)}
                     </Select>
-                    <AutocompleteInput id="origin" name="origin" label="Origem" value={trip.origin} onChange={handleInputChange} required suggestions={originSuggestions} />
-                    <AutocompleteInput id="destination" name="destination" label="Destino" value={trip.destination} onChange={handleInputChange} required suggestions={destinationSuggestions} />
-                    <Input id="startDate" name="startDate" label="Data Início" type="date" value={trip.startDate} onChange={handleInputChange} required />
+                    <LocationAutocompleteInput id="origin" name="origin" label="Origem" value={trip.origin} onChange={handleInputChange} />
+                    <LocationAutocompleteInput id="destination" name="destination" label="Destino" value={trip.destination} onChange={handleInputChange} />
+                    <Input id="startDate" name="startDate" label="Data Início" type="date" value={trip.startDate} onChange={handleInputChange} />
                     <Input id="endDate" name="endDate" label="Data Fim" type="date" value={trip.endDate || ''} onChange={handleInputChange} />
-                    <Input id="startKm" name="startKm" label="KM Inicial" type="number" step="any" value={trip.startKm || ''} onChange={e => setTrip(p => ({...p, startKm: e.target.valueAsNumber || 0}))} required />
+                    <Input id="startKm" name="startKm" label="KM Inicial" type="number" step="any" value={trip.startKm || ''} onChange={e => setTrip(p => ({...p, startKm: e.target.valueAsNumber || 0}))} />
                     <Input id="endKm" name="endKm" label="KM Final" type="number" step="any" value={trip.endKm || ''} onChange={e => setTrip(p => ({...p, endKm: e.target.valueAsNumber || 0}))} />
                     <Select id="status" name="status" label="Status" value={trip.status} onChange={handleInputChange}>
                        {Object.values(TripStatus).map(s => <option key={s} value={s}>{s}</option>)}
                     </Select>
-                    <Input id="driverCommissionRate" name="driverCommissionRate" label="Comissão Motorista (%)" type="number" step="any" value={trip.driverCommissionRate || ''} onChange={e => setTrip(p => ({...p, driverCommissionRate: e.target.valueAsNumber || 0}))} required />
+                    <Input id="driverCommissionRate" name="driverCommissionRate" label="Comissão Motorista (%)" type="number" step="any" value={trip.driverCommissionRate || ''} onChange={e => setTrip(p => ({...p, driverCommissionRate: e.target.valueAsNumber || 0}))} />
                     
                     <div className="grid grid-cols-2 gap-2">
                         <Input id="dailyRate" name="dailyRate" label="Valor da Diária (R$)" type="number" step="0.01" value={trip.dailyRate || ''} onChange={e => setTrip(p => ({...p, dailyRate: e.target.valueAsNumber || 0}))} />
@@ -449,10 +538,15 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                 </CardContent>
             </Card>
 
-            <div className="flex justify-end gap-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-8">
                 <Button type="button" variant="secondary" onClick={() => setView({ type: 'tripList' })} disabled={isSaving}>Cancelar</Button>
+                
+                <Button type="button" variant="secondary" onClick={handleSaveAsDraft} disabled={isSaving} className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border-amber-500/30">
+                    {isSaving ? 'Salvando...' : 'Salvar como Rascunho'}
+                </Button>
+
                 <Button type="submit" disabled={isSaving}>
-                    {isSaving ? 'Salvando...' : (existingTrip ? 'Atualizar Viagem' : 'Salvar e Iniciar Viagem')}
+                    {isSaving ? 'Salvando...' : (existingTrip ? 'Atualizar Viagem' : 'Concluir e Iniciar Viagem')}
                 </Button>
             </div>
         </form>

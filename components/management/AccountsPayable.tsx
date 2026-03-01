@@ -23,7 +23,7 @@ type PayableItem = {
     originalExpense: FixedExpense | WorkshopExpense;
 };
 
-const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const formatCurrency = (value: number) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const formatDate = (date: Date | null) => {
     if (!date) return 'N/A';
     // Use local date for display

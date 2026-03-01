@@ -68,9 +68,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, 
       {/* Main Sidebar */}
       <aside className={`w-64 bg-slate-800 p-4 flex flex-col fixed top-0 left-0 h-full z-40 transform transition-transform lg:translate-x-0 print:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col items-center mb-8 px-2">
-          <img src="assets/logo.png" alt="Logo" className="w-24 h-24 object-contain mb-3 rounded-lg" onError={(e) => (e.currentTarget.style.display = 'none')} />
+          <img src="assets/logo.png?v=1.3" alt="Logo" className="w-full h-auto object-contain mb-3 rounded-lg" onError={(e) => (e.currentTarget.style.display = 'none')} />
           <div className="text-center">
-            <h1 className="text-xl font-bold text-white tracking-tight">CENTRAL TRUCK</h1>
             <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em] -mt-1">Sistema de Gestão</p>
           </div>
         </div>
