@@ -17,7 +17,7 @@ export const Select: React.FC<SelectProps> = ({ label, id, children, ...props })
         <select
           id={id}
           {...props}
-          className="block w-full bg-slate-700 border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          className="block w-full bg-slate-700 border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-slate-800 sm:text-sm transition-all duration-200"
         >
           {children}
         </select>

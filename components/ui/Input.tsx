@@ -23,7 +23,7 @@ export const Input: React.FC<InputProps> = ({ label, id, showPasswordToggle = tr
           id={id}
           {...props}
           type={type}
-          className={`block w-full bg-slate-700 border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isPasswordField && showPasswordToggle ? 'pr-10' : ''} ${props.className || ''}`}
+          className={`block w-full bg-slate-700 border-slate-600 rounded-md shadow-sm py-2 px-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:bg-slate-800 sm:text-sm transition-all duration-200 ${isPasswordField && showPasswordToggle ? 'pr-10' : ''} ${props.className || ''}`}
         />
         {isPasswordField && showPasswordToggle && (
           <button

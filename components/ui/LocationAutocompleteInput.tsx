@@ -21,6 +21,7 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -42,7 +43,6 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
     
     setIsLoading(true);
     try {
-      // Usando Nominatim (OpenStreetMap) para busca de locais gratuita
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1`, {
           headers: {
               'Accept': 'application/json',
@@ -70,11 +70,11 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
           return item.display_name;
         });
 
-        // Remove duplicatas
         newSuggestions = newSuggestions.filter((item: string, pos: number) => newSuggestions.indexOf(item) === pos);
         
         setSuggestions(newSuggestions);
         setShowDropdown(true);
+        setHighlightedIndex(0);
       }
     } catch (error) {
       console.error('Erro ao buscar locais:', error);
@@ -85,7 +85,6 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    // Dispara a alteração original para manter o form em sync
     onChange(e);
     
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -96,7 +95,6 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
         return;
     }
 
-    // Debounce de 500ms
     timeoutRef.current = setTimeout(() => {
       fetchSuggestions(val);
     }, 500);
@@ -108,6 +106,28 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
     };
     onChange(syntheticEvent);
     setShowDropdown(false);
+    setHighlightedIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (e.key === 'Enter') {
+      if (highlightedIndex >= 0) {
+        e.preventDefault();
+        handleSelectSuggestion(suggestions[highlightedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setShowDropdown(false);
+    } else if (e.key === 'Tab' && highlightedIndex >= 0) {
+      handleSelectSuggestion(suggestions[highlightedIndex]);
+    }
   };
 
   return (
@@ -121,10 +141,11 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
           name={name}
           value={value}
           onChange={handleInputChange}
-          onFocus={() => { if (suggestions.length > 0) setShowDropdown(true); }}
+          onFocus={() => { if (suggestions.length > 0) { setShowDropdown(true); setHighlightedIndex(0); } }}
+          onKeyDown={handleKeyDown}
           required={required}
           autoComplete="off"
-          className="block w-full bg-slate-700 border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          className="block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
           {...props}
         />
         {isLoading && (
@@ -137,15 +158,18 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
         )}
       </div>
       {showDropdown && suggestions.length > 0 && (
-        <ul className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto">
+        <ul className="absolute z-[9999] w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg max-h-60 overflow-auto overflow-x-hidden">
           {suggestions.map((suggestion, index) => (
             <li
               key={index}
               onClick={() => handleSelectSuggestion(suggestion)}
-              className="cursor-pointer select-none py-2 px-3 text-sm text-slate-200 hover:bg-slate-700 hover:text-white transition-colors border-b border-slate-700 last:border-0"
+              onMouseEnter={() => setHighlightedIndex(index)}
+              className={`cursor-pointer select-none py-2 px-3 text-sm transition-colors border-b border-slate-700 last:border-0 ${
+                index === highlightedIndex ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700 hover:text-white'
+              }`}
             >
               <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                  <svg className={`w-4 h-4 ${index === highlightedIndex ? 'text-white' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                   <span className="truncate">{suggestion.toUpperCase()}</span>
               </div>
             </li>
