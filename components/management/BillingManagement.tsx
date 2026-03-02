@@ -3,6 +3,7 @@ import { useTrips } from '../../context/TripContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { ICONS } from '../../constants';
 import { Button } from '../ui/Button';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -174,6 +175,22 @@ export const BillingManagement: React.FC = () => {
         };
     }, [selectedMonth, selectedVehicleId, trips, fixedExpenses, workshopExpenses, getVehicle]);
 
+    const handleExportExcel = () => {
+        const dataToExport = reportData.vehicleBreakdown.map(v => ({
+            'Placa': v.vehiclePlate,
+            'Modelo': v.vehicleModel,
+            'Faturamento Bruto': v.grossRevenue,
+            'Lucro Líquido (Viagens)': v.netRevenue,
+            'Despesas': v.fixedExpenses,
+            'Despesas Oficina': v.workshopExpenses,
+            'Total KM': v.totalKm,
+            'Litros Abastecidos': v.totalLiters,
+            'Média (KM/L)': v.fuelEfficiency,
+            'Resultado Final': v.finalProfit
+        }));
+        exportToXLSX(dataToExport, `Faturamento_${selectedMonth}`, 'Faturamento_Veiculos');
+    };
+
     return (
         <Card>
             <CardHeader>
@@ -204,6 +221,10 @@ export const BillingManagement: React.FC = () => {
                                 ))}
                             </select>
                         </div>
+                        <Button variant="secondary" onClick={handleExportExcel} className="no-print">
+                            <ICONS.printer className="w-4 h-4 mr-2" />
+                            Exportar Excel
+                        </Button>
                         <Button onClick={() => window.print()} variant="secondary" className="no-print">
                             <ICONS.printer className="w-4 h-4 mr-2" />
                             Imprimir Relatório

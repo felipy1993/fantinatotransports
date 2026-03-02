@@ -9,6 +9,7 @@ import { ICONS, EXPENSE_CATEGORIES, RECEIVED_PAYMENT_TYPES, PAYMENT_METHODS } fr
 import { AutocompleteInput } from '../ui/AutocompleteInput';
 import { useNotification } from '../../context/NotificationContext';
 import { calculateTrechoMetrics } from '../../utils/tripMetrics';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -151,6 +152,59 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
             },
         };
         await updateTrip(signedTrip);
+    };
+
+    const handleExportExcel = () => {
+        const cargoData = (trip.cargo || []).map(c => ({
+            'Tipo': c.type,
+            'Peso (t)': c.weight,
+            'Preço/t': c.pricePerTon,
+            'Imposto': c.tax || 0,
+            'Total Líquido': (c.weight * c.pricePerTon) - (c.tax || 0)
+        }));
+
+        const fuelingData = (trip.fueling || []).map(f => ({
+            'Posto': f.station,
+            'KM': f.km,
+            'Litros': f.liters,
+            'Valor Total': f.totalAmount,
+            'Preço/L': f.liters > 0 ? (f.totalAmount / f.liters).toFixed(2) : 0
+        }));
+
+        const expenseData = (trip.expenses || []).map(e => ({
+            'Descrição': e.description,
+            'Categoria': e.category,
+            'Data': e.date,
+            'Valor': e.amount
+        }));
+
+        const paymentData = (trip.receivedPayments || []).map(p => ({
+            'Tipo': p.type,
+            'Método': p.method,
+            'Data': p.date,
+            'Valor': p.amount
+        }));
+
+        const summaryData = [
+            { 'Item': 'Total Frete', 'Valor': totals.totalFreight },
+            { 'Item': 'Combustível', 'Valor': totals.totalFueling },
+            { 'Item': 'Outras Despesas', 'Valor': totals.totalOtherExpenses },
+            { 'Item': 'Diárias', 'Valor': totals.totalDailyAmount },
+            { 'Item': 'Comissão Motorista', 'Valor': totals.driverCommission },
+            { 'Item': 'Lucro Líquido', 'Valor': totals.netBalance },
+            { 'Item': 'Total Recebido', 'Valor': totals.totalReceived },
+            { 'Item': 'Saldo a Receber', 'Valor': totals.balanceToReceive }
+        ];
+
+        const sheets = [
+            { name: 'Resumo', data: summaryData },
+            { name: 'Cargas', data: cargoData },
+            { name: 'Abastecimentos', data: fuelingData },
+            { name: 'Despesas', data: expenseData },
+            { name: 'Recebimentos', data: paymentData }
+        ];
+
+        exportToXLSX(sheets, `Acerto_Viagem_${trip.id.slice(0, 8)}`);
     };
 
     return (
@@ -297,6 +351,10 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                     <Button onClick={() => setView({ type: 'editTrip', tripId: trip.id })} variant="secondary">
                         <ICONS.pencil className="w-4 h-4 mr-2" />
                         Editar Viagem
+                    </Button>
+                    <Button onClick={handleExportExcel} variant="secondary">
+                        <ICONS.printer className="w-4 h-4 mr-2" />
+                        Exportar Excel
                     </Button>
                     <Button onClick={() => window.print()} variant="secondary">
                         <ICONS.printer className="w-4 h-4 mr-2" />

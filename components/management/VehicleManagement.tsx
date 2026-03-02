@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { ICONS } from '../../constants';
 import { Vehicle } from '../../types';
+import { exportToXLSX } from '../../utils/exportUtils';
 import { AutocompleteInput } from '../ui/AutocompleteInput';
 
 const VehicleRow: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => {
@@ -88,6 +89,17 @@ export const VehicleManagement: React.FC = () => {
   
   const modelSuggestions = [...new Set(vehicles.map(v => v.model))];
 
+  const handleExportExcel = () => {
+    const dataToExport = vehicles.map(vehicle => ({
+      'ID': vehicle.id,
+      'Placa': vehicle.plate,
+      'Modelo': vehicle.model,
+      'Chassi': vehicle.chassi,
+      'Status': vehicle.status === 'active' ? 'Ativo' : 'Inativo'
+    }));
+    exportToXLSX(dataToExport, 'Relatorio_Veiculos', 'Veiculos');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (plate && model && chassi) {
@@ -140,7 +152,13 @@ export const VehicleManagement: React.FC = () => {
       <div className="lg:col-span-2">
         <Card>
           <CardHeader>
-            <CardTitle>Veículos Cadastrados</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Veículos Cadastrados</CardTitle>
+              <Button variant="secondary" onClick={handleExportExcel}>
+                <ICONS.printer className="w-4 h-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

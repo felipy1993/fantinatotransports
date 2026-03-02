@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { ICONS } from '../../constants';
 import { Driver } from '../../types';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 const DriverRow: React.FC<{ driver: Driver }> = ({ driver }) => {
     const { trips, updateDriver, deleteDriver } = useTrips();
@@ -194,6 +195,18 @@ export const DriverManagement: React.FC = () => {
   
   const isFelipe = session.user?.name.startsWith('FELIPE');
 
+  const handleExportExcel = () => {
+    const dataToExport = drivers.map(driver => ({
+      'ID': driver.id,
+      'Nome': driver.name,
+      'CNH': driver.cnh || '-',
+      'Telefone': driver.phone,
+      'Status': driver.status === 'active' ? 'Ativo' : 'Inativo',
+      'Valor da Diária': driver.dailyRate || 0
+    }));
+    exportToXLSX(dataToExport, 'Relatorio_Motoristas', 'Motoristas');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name && phone && password) {
@@ -277,7 +290,13 @@ export const DriverManagement: React.FC = () => {
       <div className="lg:col-span-2">
         <Card>
           <CardHeader>
-            <CardTitle>Motoristas Cadastrados</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Motoristas Cadastrados</CardTitle>
+              <Button variant="secondary" onClick={handleExportExcel}>
+                <ICONS.printer className="w-4 h-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

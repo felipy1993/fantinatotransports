@@ -6,6 +6,7 @@ import type { View } from '../../App';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { ICONS } from '../../constants';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 interface TripListProps {
   setView: (view: View) => void;
@@ -71,12 +72,37 @@ export const TripList: React.FC<TripListProps> = ({ setView }) => {
     setEndMonth('');
   };
 
+  const handleExportExcel = () => {
+    const dataToExport = filteredTrips.map(trip => {
+      const driver = getDriver(trip.driverId);
+      const vehicle = getVehicle(trip.vehicleId);
+      return {
+        'ID': trip.id,
+        'Origem': trip.origin,
+        'Destino': trip.destination,
+        'Motorista': driver?.name || 'Não atribuído',
+        'Veículo': vehicle ? `${vehicle.plate} (${vehicle.model})` : 'Não atribuído',
+        'Data Início': trip.startDate,
+        'Km Inicial': trip.startKm,
+        'Status': getTripStatusLabel(trip),
+        'Viagem do Mês': trip.monthlyTripNumber || '-'
+      };
+    });
+    exportToXLSX(dataToExport, 'Relatorio_Viagens', 'Viagens');
+  };
+
   return (
     <Card>
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>{currentDriverId ? 'Minhas Viagens' : 'Todas as Viagens'}</CardTitle>
-          <Button onClick={() => setView({type: 'newTrip'})}>Criar Nova Viagem</Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={handleExportExcel}>
+              <ICONS.printer className="w-4 h-4 mr-2" />
+              Exportar Excel
+            </Button>
+            <Button onClick={() => setView({type: 'newTrip'})}>Criar Nova Viagem</Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

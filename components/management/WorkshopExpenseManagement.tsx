@@ -8,6 +8,7 @@ import { Select } from '../ui/Select';
 import { ICONS } from '../../constants';
 import { AutocompleteInput } from '../ui/AutocompleteInput';
 import { useNotification } from '../../context/NotificationContext';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -100,6 +101,24 @@ export const WorkshopExpenseManagement: React.FC = () => {
         setSelectedExpense(null);
     };
 
+    const handleExportExcel = () => {
+        const dataToExport = workshopExpenses.map(expense => {
+            const vehicle = getVehicle(expense.vehicleId);
+            const totalAmountPaid = Number(expense.payments.reduce((sum, p) => sum + p.amount, 0).toFixed(2));
+            const isPaidOff = expense.payments.length >= expense.installments || totalAmountPaid >= (expense.totalAmount - 0.01);
+            return {
+                'Veículo': vehicle ? vehicle.plate : '-',
+                'Descrição': expense.description,
+                'Data do Serviço': expense.serviceDate,
+                'Valor Total': expense.totalAmount,
+                'Valor Pago': totalAmountPaid,
+                'Parcelas': `${expense.payments.length}/${expense.installments}`,
+                'Status': isPaidOff ? 'Quitado' : 'Pendente'
+            };
+        });
+        exportToXLSX(dataToExport, 'Relatorio_Despesas_Oficina', 'Oficina');
+    };
+
   return (
     <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -174,7 +193,13 @@ export const WorkshopExpenseManagement: React.FC = () => {
       <div className="lg:col-span-2">
         <Card>
           <CardHeader>
-            <CardTitle>Controle de Despesas da Oficina</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Controle de Despesas da Oficina</CardTitle>
+              <Button variant="secondary" onClick={handleExportExcel}>
+                <ICONS.printer className="w-4 h-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Form Editar Inline */}

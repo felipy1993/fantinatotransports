@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Tooltip } from '../ui/Tooltip';
 import { ICONS } from '../../constants';
 import { FinancialEntry, FinancialCategory } from '../../types';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 interface FinancialItem extends FinancialEntry {
     status: 'Vencida' | 'Pendente' | 'Pago';
@@ -198,11 +199,28 @@ export const FinancialManagement: React.FC = () => {
         }
     };
 
+    const handleExportExcel = () => {
+        const dataToExport = allItems.map(item => ({
+            'ID': item.id,
+            'Descrição': item.description,
+            'Categoria': categories.find(c => c.id === item.categoryId)?.name || 'N/A',
+            'Valor': item.amount,
+            'Status': item.status,
+            'Vencimento': new Date(item.dueDate + 'T00:00:00').toLocaleDateString('pt-BR'),
+            'Total Pago': item.amountPaid
+        }));
+        exportToXLSX(dataToExport, 'Financeiro_Geral', 'Lancamentos');
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-white">Financeiro Geral</h1>
                 <div className="flex gap-2">
+                    <Button onClick={handleExportExcel} variant="secondary">
+                        <ICONS.printer className="w-4 h-4 mr-2" />
+                        Exportar Excel
+                    </Button>
                     <Button onClick={() => setShowCategoryForm(!showCategoryForm)} variant="secondary">
                         <ICONS.plus className="w-4 h-4 mr-2" />
                         Categorias

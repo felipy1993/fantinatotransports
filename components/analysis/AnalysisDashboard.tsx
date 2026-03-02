@@ -7,6 +7,7 @@ import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
 import { ICONS } from '../../constants';
 import { calculateTrechoMetrics } from '../../utils/tripMetrics';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -191,6 +192,17 @@ export const AnalysisDashboard: React.FC = () => {
         return { labels, revenue, fleetExpenses, totalExpenses, result };
     }, [filteredData, startDate, endDate]);
 
+    const handleExportExcel = () => {
+        const dataToExport = monthlyAnalysisData.labels.map((label, index) => ({
+            'Mês': label,
+            'Receitas': monthlyAnalysisData.revenue[index],
+            'Despesas Operacionais': monthlyAnalysisData.fleetExpenses[index],
+            'Despesas Totais': monthlyAnalysisData.totalExpenses[index],
+            'Resultado Saldo': monthlyAnalysisData.result[index]
+        }));
+        exportToXLSX(dataToExport, `Analise_${startDate}_a_${endDate}`, 'Analise_Mensal');
+    };
+
     const hasData = monthlyAnalysisData.labels.length > 0;
 
     return (
@@ -278,7 +290,11 @@ export const AnalysisDashboard: React.FC = () => {
                                 <div className="py-2 text-slate-600">|</div>
                                 <input type="month" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none py-2 ps-2 pe-4 text-white text-sm font-semibold outline-none flex-1" />
                             </div>
-1
+
+                            <Button onClick={handleExportExcel} variant="secondary" className="bg-slate-800 hover:bg-slate-700 border-none rounded-xl w-full sm:w-auto">
+                                <ICONS.printer className="w-4 h-4 mr-2" />
+                                Exportar Excel
+                            </Button>
                             <Button onClick={handlePrint} variant="secondary" className="bg-slate-800 hover:bg-slate-700 border-none rounded-xl w-full sm:w-auto">
                                 <ICONS.printer className="w-4 h-4 mr-2" />
                                 Relatório PDF

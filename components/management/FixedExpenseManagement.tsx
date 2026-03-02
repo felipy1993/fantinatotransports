@@ -7,6 +7,7 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { ICONS, FIXED_EXPENSE_CATEGORIES } from '../../constants';
 import { AutocompleteInput } from '../ui/AutocompleteInput';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -64,6 +65,25 @@ export const FixedExpenseManagement: React.FC = () => {
     };
     updateFixedExpense(updatedExpense);
   }
+
+  const handleExportExcel = () => {
+    const dataToExport = fixedExpenses.map(expense => {
+      const vehicle = getVehicle(expense.vehicleId);
+      const amountPaid = Number(expense.payments.reduce((sum, p) => sum + p.amount, 0).toFixed(2));
+      const remainingBalance = Math.max(0, Number((expense.totalAmount - amountPaid).toFixed(2)));
+      return {
+        'Descrição': expense.description,
+        'Veículo': vehicle ? `${vehicle.plate} (${vehicle.model})` : '-',
+        'Categoria': expense.category,
+        'Valor Total': expense.totalAmount,
+        'Valor Pago': amountPaid,
+        'Saldo Devedor': remainingBalance,
+        'Parcelas': `${expense.payments.length}/${expense.installments}`,
+        'Status': expense.payments.length >= expense.installments ? 'Quitado' : 'Pendente'
+      };
+    });
+    exportToXLSX(dataToExport, 'Relatorio_Despesas_Fixas', 'Despesas_Fixas');
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -140,7 +160,13 @@ export const FixedExpenseManagement: React.FC = () => {
       <div className="lg:col-span-2">
         <Card>
           <CardHeader>
-            <CardTitle>Controle de Despesas Fixas</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Controle de Despesas Fixas</CardTitle>
+              <Button variant="secondary" onClick={handleExportExcel}>
+                <ICONS.printer className="w-4 h-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

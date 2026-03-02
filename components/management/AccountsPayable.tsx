@@ -8,6 +8,7 @@ import { Select } from '../ui/Select';
 import { AutocompleteInput } from '../ui/AutocompleteInput';
 import { ICONS } from '../../constants';
 import { useNotification } from '../../context/NotificationContext';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 type PayableItem = {
     id: string;
@@ -277,6 +278,23 @@ export const AccountsPayable: React.FC = () => {
         }
     };
 
+    const handleExportExcel = () => {
+        const dataToExport = filteredItems.map(item => {
+            const vehicle = getVehicle(item.vehicleId);
+            return {
+                'ID': item.id,
+                'Descrição': item.description,
+                'Placa': vehicle?.plate || 'N/A',
+                'Status': item.status,
+                'Valor Total': item.totalAmount,
+                'Valor Pago': item.amountPaid,
+                'Categoria': item.category,
+                'Vencimento': formatDate(item.dueDate),
+                'Parcelas': `${item.paymentsCount}/${item.installments}`
+            };
+        });
+        exportToXLSX(dataToExport, 'Contas_a_Pagar', 'Contas');
+    };
 
     return (
         <>
@@ -393,6 +411,10 @@ export const AccountsPayable: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex gap-2 no-print">
+                            <Button variant="secondary" onClick={handleExportExcel}>
+                                <ICONS.printer className="w-4 h-4 mr-2"/>
+                                Exportar Excel
+                            </Button>
                              <Button onClick={() => { setShowAddForm(!showAddForm); setShowEditForm(false); }}>
                                 <ICONS.plus className="w-4 h-4 mr-2"/>
                                 {showAddForm ? 'Fechar' : 'Nova Despesa'}

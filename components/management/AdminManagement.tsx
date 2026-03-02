@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { ICONS } from '../../constants';
 import { Admin } from '../../types';
+import { exportToXLSX } from '../../utils/exportUtils';
 
 const AdminRow: React.FC<{ admin: Admin }> = ({ admin }) => {
     const { admins, updateAdmin, deleteAdmin } = useTrips();
@@ -176,6 +177,14 @@ export const AdminManagement: React.FC = () => {
   
   const isFelipe = session.user?.name.startsWith('FELIPE');
 
+  const handleExportExcel = () => {
+    const dataToExport = admins.map(admin => ({
+      'ID': admin.id,
+      'Nome': admin.name
+    }));
+    exportToXLSX(dataToExport, 'Relatorio_Administradores', 'Admins');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFelipe) {
@@ -238,7 +247,13 @@ export const AdminManagement: React.FC = () => {
       <div className="lg:col-span-2">
         <Card>
           <CardHeader>
-            <CardTitle>Administradores Cadastrados</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Administradores Cadastrados</CardTitle>
+              <Button variant="secondary" onClick={handleExportExcel}>
+                <ICONS.printer className="w-4 h-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
