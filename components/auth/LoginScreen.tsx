@@ -159,7 +159,7 @@ export const LoginScreen: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-[34px] p-2 text-slate-500 hover:text-orange-500 transition-colors z-20"
+                                        className="absolute right-3 top-[25px] bottom-0 flex items-center p-2 text-slate-500 hover:text-orange-500 transition-colors z-20"
                                         title={showPassword ? "Ocultar senha" : "Mostrar senha"}
                                     >
                                         {showPassword ? (
