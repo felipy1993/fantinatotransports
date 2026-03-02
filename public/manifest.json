@@ -1,17 +1,31 @@
 {
-  "name": "Fantinato",
-  "short_name": "Fantinato",
+  "name": "PRATEADO TRANSPORTE - Gestão",
+  "short_name": "PRATEADO TRANSPORTE",
   "description": "Sistema de Gestão de Fretes e Operações",
-  "start_url": "/",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
-  "theme_color": "#2563eb",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
   "icons": [
+    {
+      "src": "assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
     {
       "src": "assets/logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "pt-BR"
 }
+

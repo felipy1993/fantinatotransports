@@ -4,30 +4,39 @@
     <meta charset="UTF-8" />
     <link rel="icon" href="assets/logo.png?v=1.3" type="image/png" />
     <link rel="apple-touch-icon" href="assets/logo.png?v=1.3" />
-    <link rel="shortcut icon" href="assets/logo.png?v=1.3" />
-    <link rel="manifest" href="manifest.json?v=1.1" />
+    <meta name="apple-mobile-web-app-title" content="PRATEADO TRANSPORTE">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    
+    <link rel="manifest" href="manifest.json?v=1.2" />
     <meta name="theme-color" content="#0f172a" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://sistemac.fs-sistema.cloud https://nominatim.openstreetmap.org; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;" />
     <meta name="referrer" content="no-referrer" />
-    <title>Fantinato - Sistema de Controle de Viagem</title>
+    <title>PRATEADO TRANSPORTE - Sistema de Controle de Viagem</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      const VERSION = '1.0.' + Date.now();
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(reg => {
+          const swPath = window.location.pathname.includes('/dist/') ? '../sw.js' : './sw.js';
+          navigator.serviceWorker.register(swPath).then(reg => {
+            console.log('SW registrado com sucesso:', reg.scope);
+            
             reg.addEventListener('updatefound', () => {
               const newWorker = reg.installing;
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New update available, force reload
-                  window.location.reload();
+                  // Notificar usuário sobre atualização (opcional, aqui estamos apenas recarregando)
+                  if (confirm('Nova versão disponível! Deseja atualizar agora?')) {
+                    window.location.reload();
+                  }
                 }
               });
             });
+          }).catch(err => {
+            console.error('Erro ao registrar SW:', err);
           });
         });
       }

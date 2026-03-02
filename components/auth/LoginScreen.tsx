@@ -146,6 +146,7 @@ export const LoginScreen: React.FC = () => {
                                         id="password"
                                         label="Senha"
                                         type={showPassword ? 'text' : 'password'}
+                                        showPasswordToggle={false}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         onFocus={() => setFocusedField('password')}

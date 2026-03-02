@@ -46,7 +46,7 @@ export const LocationAutocompleteInput: React.FC<LocationAutocompleteInputProps>
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=br&addressdetails=1`, {
           headers: {
               'Accept': 'application/json',
-              'User-Agent': 'FantinatoTransportsApp/1.0'
+              'User-Agent': 'PRATEADO TRANSPORTETransportsApp/1.0'
           }
       });
       if (response.ok) {

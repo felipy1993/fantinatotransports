@@ -308,7 +308,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
             <Card className="printable-card overflow-hidden">
                 {/* Print Only Header */}
                 <div className="print-header">
-                    <h1>FANTINATO</h1>
+                    <h1>PRATEADO TRANSPORTE</h1>
                     <p>Comprovante de Acerto de Viagem</p>
                     <p>Emissão: {new Date().toLocaleString('pt-BR')}</p>
                 </div>
@@ -577,7 +577,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                         </div>
                         <div className="text-center">
                             <div className="border-t border-black w-full mb-2"></div>
-                            <p className="text-sm font-bold">FANTINATO</p>
+                            <p className="text-sm font-bold">PRATEADO TRANSPORTE</p>
                             <p className="text-xs">Responsável</p>
                         </div>
                     </div>
