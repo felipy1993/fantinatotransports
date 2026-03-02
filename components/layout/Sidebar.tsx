@@ -163,6 +163,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, 
               Nova Viagem
           </Button>
         </div>
+
+        {/* Developer Branding */}
+        <div className="mt-6 pt-4 border-t border-slate-700/50 flex flex-col items-center opacity-40 hover:opacity-100 transition-all duration-500">
+          <p className="text-[8px] uppercase tracking-[0.3em] text-slate-500 mb-2 font-bold">Desenvolvido por</p>
+          <img 
+            src="assets/logo-dev.png" 
+            alt="Dev Logo" 
+            className="h-6 w-auto grayscale contrast-125 hover:grayscale-0 transition-all duration-700 pointer-events-none"
+            onError={(e) => (e.currentTarget.parentElement!.style.display = 'none')}
+          />
+        </div>
       </aside>
     </>
   );

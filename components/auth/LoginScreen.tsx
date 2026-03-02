@@ -224,9 +224,20 @@ export const LoginScreen: React.FC = () => {
 
                 {/* Bottom decorative elements */}
                 <div className="mt-8 flex justify-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-orange-500/60"></div>
-                    <div className="w-3 h-3 rounded-full bg-blue-600/60"></div>
-                    <div className="w-3 h-3 rounded-full bg-orange-500/40"></div>
+                    <div className="w-3 h-3 rounded-full bg-orange-500/60 opacity-20"></div>
+                    <div className="w-3 h-3 rounded-full bg-blue-600/60 opacity-20"></div>
+                    <div className="w-3 h-3 rounded-full bg-orange-500/40 opacity-20"></div>
+                </div>
+
+                {/* Developer Credit */}
+                <div className="mt-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-1000 delay-500">
+                    <p className="text-[9px] uppercase tracking-[0.4em] text-slate-600 mb-2 font-black">Powered by</p>
+                    <img 
+                        src="assets/logo-dev.png" 
+                        alt="Developer" 
+                        className="h-5 w-auto opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none grayscale hover:grayscale-0"
+                        onError={(e) => (e.currentTarget.parentElement!.style.display = 'none')}
+                    />
                 </div>
             </div>
 
