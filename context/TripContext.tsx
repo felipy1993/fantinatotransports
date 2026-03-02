@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { Trip, Driver, Vehicle, FixedExpense, WorkshopExpense, Admin, FinancialEntry, FinancialCategory } from '../types';
+import { Trip, Driver, Vehicle, FixedExpense, WorkshopExpense, Admin, FinancialEntry, FinancialCategory, SystemConfig } from '../types';
 import { dataService } from '../services/dataService';
 import { generateSalt, hashPassword } from '../utils/crypto';
 
@@ -17,7 +17,11 @@ interface TripContextType {
   workshopExpenses: WorkshopExpense[];
   financialEntries: FinancialEntry[];
   financialCategories: FinancialCategory[];
+  systemConfig: SystemConfig | null;
   isLoading: boolean;
+  showPaymentModal: boolean;
+  setShowPaymentModal: (show: boolean) => void;
+  daysToExpiration: number | null;
   addTrip: (trip: Omit<Trip, 'id' | 'createdAt'>) => Promise<void>;
   updateTrip: (trip: Trip) => Promise<void>;
   getTrip: (id: string) => Trip | undefined;
@@ -57,7 +61,9 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [workshopExpenses, setWorkshopExpenses] = useState<WorkshopExpense[]>([]);
     const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>([]);
     const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
+    const [systemConfig, setSystemConfig] = useState<SystemConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     useEffect(() => {
         const fetchAllData = async () => {
@@ -71,7 +77,8 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     fixedExpensesData,
                     workshopExpensesData,
                     financialEntriesData,
-                    financialCategoriesData
+                    financialCategoriesData,
+                    systemConfigData
                 ] = await Promise.all([
                     dataService.list('trips'),
                     dataService.list('drivers'),
@@ -80,7 +87,8 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     dataService.list('fixedExpenses'),
                     dataService.list('workshopExpenses'),
                     dataService.list('financialEntries'),
-                    dataService.list('financialCategories')
+                    dataService.list('financialCategories'),
+                    dataService.list('system_config').catch(() => []) // Handle missing collection gracefully
                 ]);
 
                 setTrips(tripsData as Trip[]);
@@ -91,6 +99,26 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setWorkshopExpenses(workshopExpensesData as WorkshopExpense[]);
                 setFinancialEntries(financialEntriesData as FinancialEntry[]);
                 setFinancialCategories(financialCategoriesData as FinancialCategory[]);
+                
+                // systemConfig is expected to be a single record or empty
+                const configs = systemConfigData as SystemConfig[];
+                if (configs && configs.length > 0) {
+                    setSystemConfig(configs[0]);
+                } else {
+                    // Default fallback if no config exists - system is "free" by default until configured
+                    setSystemConfig({
+                        id: 'default',
+                        dueDate: '2099-12-31',
+                        isPaid: true,
+                        amount: 0,
+                        pixKey: '(17) 997557625',
+                        pixName: 'Felipe Simao da Silva',
+                        pixBank: 'Banco do Brasil',
+                        whatsappNumber: '17997557625',
+                        blockMessage: 'O acesso ao sistema está temporariamente suspenso. Por favor, entre em contato com o administrador para regularizar sua situação.',
+                        updatedAt: new Date().toISOString()
+                    });
+                }
 
                 // Seed logic (if enabled)
                 const shouldSeed = (window as any).__ENABLE_SEED__ === true;
@@ -127,6 +155,22 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         }
                         setFinancialCategories(createdCats);
                     }
+
+                    if (configs.length === 0) {
+                        console.log("No system_config found, creating default...");
+                        const defaultConfig = {
+                            dueDate: '2099-12-31',
+                            isPaid: true,
+                            amount: 0,
+                            pixKey: '(17) 997557625',
+                            pixName: 'Felipe Simao da Silva',
+                            pixBank: 'Banco do Brasil',
+                            whatsappNumber: '17997557625',
+                            blockMessage: 'O acesso ao sistema está temporariamente suspenso. Por favor, entre em contato com o administrador para regularizar sua situação.',
+                        };
+                        const created = await dataService.create('system_config', defaultConfig);
+                        setSystemConfig(created as SystemConfig);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -137,6 +181,19 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         fetchAllData();
     }, []);
+
+    const daysToExpiration = React.useMemo(() => {
+        if (!systemConfig || systemConfig.isPaid) return null;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const dueDate = new Date(systemConfig.dueDate + 'T00:00:00');
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return diffDays;
+    }, [systemConfig]);
 
   const addTrip = async (trip: Omit<Trip, 'id' | 'createdAt'>) => {
     let monthlyTripNumber = trip.monthlyTripNumber;
@@ -340,7 +397,10 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         addWorkshopExpense, updateWorkshopExpense, deleteWorkshopExpense,
         financialEntries, financialCategories,
         addFinancialEntry, updateFinancialEntry, deleteFinancialEntry,
-        addFinancialCategory, deleteFinancialCategory
+        addFinancialCategory, deleteFinancialCategory,
+        systemConfig,
+        showPaymentModal, setShowPaymentModal,
+        daysToExpiration
      }}>
       {children}
     </TripContext.Provider>

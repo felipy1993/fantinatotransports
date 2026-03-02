@@ -193,3 +193,16 @@ export interface FinancialEntry {
     payments: FixedExpensePayment[]; // Reutilizando a mesma estrutura de pagamento
     createdAt: string;
 }
+
+export interface SystemConfig {
+    id: string;
+    dueDate: string; // YYYY-MM-DD
+    isPaid: boolean;
+    amount: number;
+    pixKey: string;
+    pixName: string;
+    pixBank: string;
+    whatsappNumber: string;
+    blockMessage?: string;
+    updatedAt: string;
+}
