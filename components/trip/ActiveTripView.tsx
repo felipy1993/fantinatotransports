@@ -28,19 +28,30 @@ export const ActiveTripView: React.FC<ActiveTripViewProps> = ({ trip: initialTri
     const [isFinishing, setIsFinishing] = useState(false);
 
     const [currentExpense, setCurrentExpense] = useState<Omit<Expense, 'id'>>({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
+    const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
     const [currentFueling, setCurrentFueling] = useState<Omit<Fueling, 'id'>>({ station: '', date: today, km: trip.startKm, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
+    const [editingFuelingId, setEditingFuelingId] = useState<string | null>(null);
     
     const stationSuggestions = [...new Set(trips.flatMap(t => t.fueling || []).filter(Boolean).map(f => f.station))];
     const expenseDescSuggestions = [...new Set(trips.flatMap(t => t.expenses || []).filter(Boolean).map(e => e.description))];
 
     const handleAddExpense = async () => {
         if (currentExpense.description && currentExpense.amount > 0) {
-            const newExpense = { ...currentExpense, id: '' + Math.random() };
-            const updatedTrip = { ...trip, expenses: [...trip.expenses, newExpense] };
+            let updatedTrip;
+            if (editingExpenseId) {
+                updatedTrip = { 
+                    ...trip, 
+                    expenses: trip.expenses.map(e => e.id === editingExpenseId ? { ...currentExpense, id: editingExpenseId } : e) 
+                };
+                setEditingExpenseId(null);
+            } else {
+                const newExpense = { ...currentExpense, id: '' + Math.random() };
+                updatedTrip = { ...trip, expenses: [...trip.expenses, newExpense] };
+            }
             setTrip(updatedTrip);
             await updateTrip(updatedTrip);
             setCurrentExpense({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
-            showNotification('Despesa adicionada com sucesso!', 'success');
+            showNotification(editingExpenseId ? 'Despesa atualizada!' : 'Despesa adicionada!', 'success');
         } else {
             showNotification('Preencha a descrição e um valor maior que zero.', 'error');
         }
@@ -48,27 +59,54 @@ export const ActiveTripView: React.FC<ActiveTripViewProps> = ({ trip: initialTri
     
     const handleAddFueling = async () => {
         if (currentFueling.station && currentFueling.liters > 0 && currentFueling.totalAmount > 0) {
-            const newFueling = { ...currentFueling, id: '' + Math.random() };
-            const updatedTrip = { ...trip, fueling: [...trip.fueling, newFueling] };
+            let updatedTrip;
+            if (editingFuelingId) {
+                updatedTrip = { 
+                    ...trip, 
+                    fueling: trip.fueling.map(f => f.id === editingFuelingId ? { ...currentFueling, id: editingFuelingId } : f) 
+                };
+                setEditingFuelingId(null);
+            } else {
+                const newFueling = { ...currentFueling, id: '' + Math.random() };
+                updatedTrip = { ...trip, fueling: [...trip.fueling, newFueling] };
+            }
             setTrip(updatedTrip);
             await updateTrip(updatedTrip);
             setCurrentFueling({ station: '', date: today, km: 0, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
-            showNotification('Abastecimento adicionado com sucesso!', 'success');
+            showNotification(editingFuelingId ? 'Abastecimento atualizado!' : 'Abastecimento adicionado!', 'success');
         } else {
              showNotification('Preencha o posto, litros e valor total.', 'error');
         }
+    };
+
+    const handleEditExpense = (e: Expense) => {
+        setEditingExpenseId(e.id);
+        setCurrentExpense({ category: e.category, description: e.description, amount: e.amount, date: e.date });
+    };
+
+    const handleEditFueling = (f: Fueling) => {
+        setEditingFuelingId(f.id);
+        setCurrentFueling({ station: f.station, date: f.date, km: f.km, liters: f.liters, totalAmount: f.totalAmount, paymentMethod: f.paymentMethod });
     };
 
     const handleRemoveExpense = async (id: string) => {
         const updatedTrip = { ...trip, expenses: trip.expenses.filter(e => e.id !== id) };
         setTrip(updatedTrip);
         await updateTrip(updatedTrip);
+        if (editingExpenseId === id) {
+            setEditingExpenseId(null);
+            setCurrentExpense({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
+        }
     }
     
     const handleRemoveFueling = async (id: string) => {
         const updatedTrip = { ...trip, fueling: trip.fueling.filter(f => f.id !== id) };
         setTrip(updatedTrip);
         await updateTrip(updatedTrip);
+        if (editingFuelingId === id) {
+            setEditingFuelingId(null);
+            setCurrentFueling({ station: '', date: today, km: 0, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
+        }
     }
     
     const handleFinishTrip = async () => {
@@ -118,7 +156,17 @@ export const ActiveTripView: React.FC<ActiveTripViewProps> = ({ trip: initialTri
                                 </div>
                             </div>
                         </div>
-                        <Button onClick={handleAddFueling} className="mt-4 w-full">Adicionar Abastecimento</Button>
+                        <div className="flex gap-2">
+                            {editingFuelingId && (
+                                <Button onClick={() => {
+                                    setEditingFuelingId(null);
+                                    setCurrentFueling({ station: '', date: today, km: 0, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
+                                }} variant="secondary" className="mt-4 flex-1">Cancelar</Button>
+                            )}
+                            <Button onClick={handleAddFueling} className="mt-4 flex-[2]">
+                                {editingFuelingId ? 'Salvar Alterações' : 'Adicionar Abastecimento'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
                 
@@ -154,7 +202,17 @@ export const ActiveTripView: React.FC<ActiveTripViewProps> = ({ trip: initialTri
                         <AutocompleteInput id="expDesc" label="Descrição" value={currentExpense.description} onChange={e => setCurrentExpense(p => ({...p, description: e.target.value.toUpperCase()}))} suggestions={expenseDescSuggestions}/>
                         <Input id="expAmount" label="Valor (R$)" type="number" step="0.01" value={currentExpense.amount || ''} onChange={e => setCurrentExpense(p => ({...p, amount: e.target.valueAsNumber || 0}))}/>
                     </div>
-                    <Button onClick={handleAddExpense} className="mt-4 w-full" variant="secondary">Adicionar Despesa</Button>
+                    <div className="flex gap-2">
+                        {editingExpenseId && (
+                            <Button onClick={() => {
+                                setEditingExpenseId(null);
+                                setCurrentExpense({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
+                            }} variant="secondary" className="mt-4 flex-1">Cancelar</Button>
+                        )}
+                        <Button onClick={handleAddExpense} className="mt-4 flex-[2]" variant={editingExpenseId ? 'primary' : 'secondary'}>
+                            {editingExpenseId ? 'Salvar Alterações' : 'Adicionar Despesa'}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -172,10 +230,13 @@ export const ActiveTripView: React.FC<ActiveTripViewProps> = ({ trip: initialTri
                             <div key={f.id} className="bg-slate-700 p-3 rounded flex items-center justify-between">
                                 <div>
                                    <p className="font-semibold text-white">{f.station}</p>
-                                   <p className="text-sm text-slate-300">{f.km}km - {f.liters}L - {new Date(f.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                                    <p className="text-sm text-slate-300">{f.km}km - {f.liters}L - {new Date(f.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                                 </div>
-                               <div className="flex items-center gap-4">
+                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-lg">{formatCurrency(f.totalAmount)}</span>
+                                <Button type="button" onClick={() => handleEditFueling(f)} className="p-1 h-7 w-7 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                    <ICONS.pencil className="h-4 w-4"/>
+                                </Button>
                                 <Button type="button" variant="danger" onClick={() => handleRemoveFueling(f.id)} className="p-1 h-7 w-7"><ICONS.trash className="h-4 w-4"/></Button>
                                </div>
                            </div>
@@ -196,10 +257,13 @@ export const ActiveTripView: React.FC<ActiveTripViewProps> = ({ trip: initialTri
                             <div key={e.id} className="bg-slate-700 p-3 rounded flex items-center justify-between">
                                 <div>
                                    <p className="font-semibold text-white">{e.category}</p>
-                                   <p className="text-sm text-slate-300">{e.description} - {new Date(e.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                                    <p className="text-sm text-slate-300">{e.description} - {new Date(e.date + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                                 </div>
-                               <div className="flex items-center gap-4">
+                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-lg">{formatCurrency(e.amount)}</span>
+                                <Button type="button" onClick={() => handleEditExpense(e)} className="p-1 h-7 w-7 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                    <ICONS.pencil className="h-4 w-4"/>
+                                </Button>
                                 <Button type="button" variant="danger" onClick={() => handleRemoveExpense(e.id)} className="p-1 h-7 w-7"><ICONS.trash className="h-4 w-4"/></Button>
                                </div>
                            </div>

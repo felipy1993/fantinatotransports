@@ -32,7 +32,8 @@ export const BillingManagement: React.FC = () => {
         const [year, month] = selectedMonth.split('-').map(Number);
 
         const monthlyTrips = trips.filter(trip => {
-            if (selectedVehicleId && trip.vehicleId !== selectedVehicleId) {
+            // Compare as strings to avoid type mismatches (e.g. string vs number)
+            if (selectedVehicleId && String(trip.vehicleId) !== String(selectedVehicleId)) {
                 return false;
             }
             const tripDate = new Date(trip.startDate + 'T00:00:00');
@@ -114,7 +115,7 @@ export const BillingManagement: React.FC = () => {
             stats.totalLiters += trip.fueling.reduce((sum, f) => sum + f.liters, 0);
         });
 
-        fixedExpenses.forEach(expense => {
+        allFixedExpenses.forEach(expense => {
             for (let i = 0; i < expense.installments; i++) {
                 const dueDate = new Date(`${expense.firstPaymentDate}T00:00:00Z`);
                 dueDate.setUTCMonth(dueDate.getUTCMonth() + i);
@@ -132,7 +133,7 @@ export const BillingManagement: React.FC = () => {
             }
         });
         
-        workshopExpenses.forEach(expense => {
+        allWorkshopExpenses.forEach(expense => {
             for (let i = 0; i < expense.installments; i++) {
                 const dueDate = new Date(`${expense.firstPaymentDate}T00:00:00Z`);
                 dueDate.setUTCMonth(dueDate.getUTCMonth() + i);
@@ -241,12 +242,13 @@ export const BillingManagement: React.FC = () => {
                     <StatCard label="Resultado Final" value={formatCurrency(reportData.finalProfit)} className={reportData.finalProfit >= 0 ? "bg-green-900/40" : "bg-red-900/40"} />
                 </div>
                 
-                {!selectedVehicleId && (
                 <div>
-                    <h3 className="text-xl font-semibold text-white mt-8 mb-4">Faturamento por Veículo</h3>
+                    <h3 className="text-xl font-semibold text-white mt-8 mb-4">
+                        {selectedVehicleId ? 'Resumo do Veículo' : 'Faturamento por Veículo'}
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {reportData.vehicleBreakdown.length > 0 ? reportData.vehicleBreakdown.map(v => (
-                            <div key={v.vehicleId} className="bg-slate-700 p-4 rounded-lg">
+                            <div key={v.vehicleId} className="bg-slate-700 p-4 rounded-lg border border-slate-600">
                                 <p className="font-bold text-lg text-white">{v.vehiclePlate}</p>
                                 <p className="text-sm text-slate-400 mb-3">{v.vehicleModel}</p>
                                 
@@ -285,7 +287,6 @@ export const BillingManagement: React.FC = () => {
                         )}
                     </div>
                 </div>
-                )}
 
                 <div>
                     <h3 className="text-lg font-semibold text-white mt-8 mb-3">Viagens Realizadas no Mês</h3>

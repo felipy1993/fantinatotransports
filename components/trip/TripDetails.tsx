@@ -74,6 +74,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
         amount: 0,
         date: today,
     });
+    const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
     
     const [newReceivedPayment, setNewReceivedPayment] = useState<Omit<ReceivedPayment, 'id'>>({
         type: ReceivedPaymentType.BALANCE,
@@ -81,6 +82,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
         amount: 0,
         date: today,
     });
+    const [editingReceivedPaymentId, setEditingReceivedPaymentId] = useState<string | null>(null);
 
     const expenseDescSuggestions = [...new Set(trips.flatMap(t => t.expenses || []).filter(Boolean).map(e => e.description))];
 
@@ -94,8 +96,17 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
 
     const handleAddExpense = async () => {
         if (newExpense.description && newExpense.amount > 0) {
-            const expenseToAdd: Expense = { ...newExpense, id: '' + Math.random() };
-            const updatedTrip = { ...trip, expenses: [...(trip.expenses || []), expenseToAdd] };
+            let updatedTrip;
+            if (editingExpenseId) {
+                updatedTrip = { 
+                    ...trip, 
+                    expenses: (trip.expenses || []).map(e => e.id === editingExpenseId ? { ...newExpense, id: editingExpenseId } : e)
+                };
+                setEditingExpenseId(null);
+            } else {
+                const expenseToAdd: Expense = { ...newExpense, id: '' + Math.random() };
+                updatedTrip = { ...trip, expenses: [...(trip.expenses || []), expenseToAdd] };
+            }
             await updateTrip(updatedTrip);
             setNewExpense({
                 category: ExpenseCategory.OTHER,
@@ -103,7 +114,7 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                 amount: 0,
                 date: today,
             });
-            showNotification('Despesa adicionada com sucesso!', 'success');
+            showNotification(editingExpenseId ? 'Despesa atualizada!' : 'Despesa adicionada!', 'success');
         } else {
             showNotification('Preencha a descrição e um valor maior que zero.', 'error');
         }
@@ -111,8 +122,17 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
     
     const handleAddReceivedPayment = async () => {
         if (newReceivedPayment.amount > 0) {
-            const paymentToAdd: ReceivedPayment = { ...newReceivedPayment, id: '' + Math.random() };
-            const updatedTrip = { ...trip, receivedPayments: [...(trip.receivedPayments || []), paymentToAdd] };
+            let updatedTrip;
+            if (editingReceivedPaymentId) {
+                updatedTrip = { 
+                    ...trip, 
+                    receivedPayments: (trip.receivedPayments || []).map(p => p.id === editingReceivedPaymentId ? { ...newReceivedPayment, id: editingReceivedPaymentId } : p)
+                };
+                setEditingReceivedPaymentId(null);
+            } else {
+                const paymentToAdd: ReceivedPayment = { ...newReceivedPayment, id: '' + Math.random() };
+                updatedTrip = { ...trip, receivedPayments: [...(trip.receivedPayments || []), paymentToAdd] };
+            }
             await updateTrip(updatedTrip);
             setNewReceivedPayment({
                 type: ReceivedPaymentType.BALANCE,
@@ -120,16 +140,30 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                 amount: 0,
                 date: today,
             });
-            showNotification('Recebimento adicionado com sucesso!', 'success');
+            showNotification(editingReceivedPaymentId ? 'Recebimento atualizado!' : 'Recebimento adicionado!', 'success');
         } else {
             showNotification('Por favor, preencha um valor maior que zero.', 'error');
         }
+    };
+
+    const handleEditExpense = (e: Expense) => {
+        setEditingExpenseId(e.id);
+        setNewExpense({ category: e.category, description: e.description, amount: e.amount, date: e.date });
+    };
+
+    const handleEditReceivedPayment = (p: ReceivedPayment) => {
+        setEditingReceivedPaymentId(p.id);
+        setNewReceivedPayment({ type: p.type, method: p.method, amount: p.amount, date: p.date });
     };
 
 
     const handleRemoveExpense = async (expenseId: string) => {
         const updatedTrip = { ...trip, expenses: (trip.expenses || []).filter(e => e.id !== expenseId) };
         await updateTrip(updatedTrip);
+        if (editingExpenseId === expenseId) {
+            setEditingExpenseId(null);
+            setNewExpense({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
+        }
     };
     
     const handleRemoveFueling = async (fuelingId: string) => {
@@ -140,6 +174,10 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
     const handleRemoveReceivedPayment = async (paymentId: string) => {
         const updatedTrip = { ...trip, receivedPayments: (trip.receivedPayments || []).filter(p => p.id !== paymentId) };
         await updateTrip(updatedTrip);
+        if (editingReceivedPaymentId === paymentId) {
+            setEditingReceivedPaymentId(null);
+            setNewReceivedPayment({ type: ReceivedPaymentType.BALANCE, method: PaymentMethod.PIX, amount: 0, date: today });
+        }
     };
 
 
@@ -455,7 +493,14 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                                                     <div className="text-[10px]">{fuel.km} km</div>
                                                 </td>
                                                 <td className="py-2">{fuel.liters} L</td>
-                                                <td className="py-2 text-right font-medium">{formatCurrency(fuel.totalAmount)}</td>
+                                                <td className="py-2 text-right font-medium">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {formatCurrency(fuel.totalAmount)}
+                                                        <button onClick={() => handleRemoveFueling(fuel.id)} className="remove-btn text-red-500 hover:text-red-400 p-1">
+                                                            <ICONS.trash className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -478,7 +523,17 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                                                     <div className="font-medium text-white">{exp.description}</div>
                                                     <div className="text-[10px] uppercase text-slate-500">{exp.category}</div>
                                                 </td>
-                                                <td className="py-2 text-right font-medium">{formatCurrency(exp.amount)}</td>
+                                                <td className="py-2 text-right font-medium">
+                                                    <div className="flex items-center justify-end gap-2 text-[10px]">
+                                                        {formatCurrency(exp.amount)}
+                                                        <button onClick={() => handleEditExpense(exp)} className="p-1 rounded bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                                            <ICONS.pencil className="w-3 h-3" />
+                                                        </button>
+                                                        <button onClick={() => handleRemoveExpense(exp.id)} className="p-1 rounded bg-red-600/20 hover:bg-red-600/40 text-red-500 border border-red-500/30" title="Excluir">
+                                                            <ICONS.trash className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -520,14 +575,46 @@ export const TripDetails: React.FC<{ tripId: string, setView: (view: any) => voi
                                             <div className="text-white font-medium">{p.type}</div>
                                             <div className="text-slate-500">{p.method} | {new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
                                         </div>
-                                        <span className="text-sm font-bold text-green-400">{formatCurrency(p.amount)}</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm font-bold text-green-400">{formatCurrency(p.amount)}</span>
+                                            <div className="flex gap-1 no-print">
+                                                <button onClick={() => handleEditReceivedPayment(p)} className="p-1 rounded bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                                    <ICONS.pencil className="w-3 h-3" />
+                                                </button>
+                                                <button onClick={() => handleRemoveReceivedPayment(p.id)} className="p-1 rounded bg-red-600/20 hover:bg-red-600/40 text-red-500 border border-red-500/30" title="Excluir">
+                                                    <ICONS.trash className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                            <div id="add-received-payment-section" className="pt-4 border-t border-slate-700">
-                                <Button variant="secondary" className="w-full text-xs py-1 h-auto" onClick={() => setView({type: 'viewTrip', tripId: trip.id})}>
-                                    Gerenciar Recebimentos
-                                </Button>
+                            <div id="add-received-payment-section" className="pt-4 border-t border-slate-700 no-print">
+                                <div className="space-y-3 mb-4 p-3 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Select id="recType" label="Tipo" value={newReceivedPayment.type} onChange={e => setNewReceivedPayment(p => ({...p, type: e.target.value as ReceivedPaymentType}))} className="text-xs h-8 py-0">
+                                            {RECEIVED_PAYMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </Select>
+                                        <Select id="recMethod" label="Forma" value={newReceivedPayment.method} onChange={e => setNewReceivedPayment(p => ({...p, method: e.target.value as PaymentMethod}))} className="text-xs h-8 py-0">
+                                            {PAYMENT_METHODS.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </Select>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Input id="recDate" label="Data" type="date" value={newReceivedPayment.date} onChange={e => setNewReceivedPayment(p => ({...p, date: e.target.value}))} className="text-xs h-8 py-0"/>
+                                        <Input id="recAmount" label="Valor" type="number" step="0.01" value={newReceivedPayment.amount || ''} onChange={e => setNewReceivedPayment(p => ({...p, amount: e.target.valueAsNumber || 0}))} className="text-xs h-8 py-0"/>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {editingReceivedPaymentId && (
+                                            <Button variant="secondary" className="flex-1 text-xs py-1 h-auto" onClick={() => {
+                                                setEditingReceivedPaymentId(null);
+                                                setNewReceivedPayment({ type: ReceivedPaymentType.BALANCE, method: PaymentMethod.PIX, amount: 0, date: today });
+                                            }}>Cancelar</Button>
+                                        )}
+                                        <Button variant="primary" className="flex-[2] text-xs py-1 h-auto" onClick={handleAddReceivedPayment}>
+                                            {editingReceivedPaymentId ? 'Salvar Alteração' : 'Adicionar Recebimento'}
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </section>
 

@@ -52,14 +52,14 @@ export const AnalysisDashboard: React.FC = () => {
         
         const filteredTrips = trips.filter(trip => {
             const tripDate = new Date(`${trip.startDate}T00:00:00Z`);
-            const vehicleMatch = !selectedVehicleId || trip.vehicleId === selectedVehicleId;
+            const vehicleMatch = !selectedVehicleId || String(trip.vehicleId) === String(selectedVehicleId);
             const dateMatch = tripDate >= start && tripDate <= end;
             return vehicleMatch && dateMatch;
         });
 
         const getExpensesInRange = (expenses: (FixedExpense | WorkshopExpense)[]) => {
             const relevantExpenses: { date: Date, amount: number, vehicleId: string }[] = [];
-            const source = selectedVehicleId ? expenses.filter(e => e.vehicleId === selectedVehicleId) : expenses;
+            const source = selectedVehicleId ? expenses.filter(e => String(e.vehicleId) === String(selectedVehicleId)) : expenses;
 
             source.forEach(expense => {
                 const installmentAmount = expense.totalAmount / expense.installments;

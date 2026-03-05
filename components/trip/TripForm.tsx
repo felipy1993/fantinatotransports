@@ -103,63 +103,166 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
     
     // Cargo Management
     const [currentCargo, setCurrentCargo] = useState<Omit<Cargo, 'id'>>({ type: '', weight: 0, pricePerTon: 0, tax: 0 });
+    const [taxInput, setTaxInput] = useState('');
+    const [editingCargoId, setEditingCargoId] = useState<string | null>(null);
+
+    React.useEffect(() => {
+        let numericTax = 0;
+        if (taxInput.endsWith('%')) {
+            const percentage = parseFloat(taxInput.replace('%', '').replace(',', '.'));
+            if (!isNaN(percentage)) {
+                numericTax = (currentCargo.weight * currentCargo.pricePerTon * percentage) / 100;
+            }
+        } else {
+            numericTax = parseFloat(taxInput.replace(',', '.')) || 0;
+        }
+        setCurrentCargo(prev => ({ ...prev, tax: numericTax }));
+    }, [taxInput, currentCargo.weight, currentCargo.pricePerTon]);
+
     const handleAddCargo = () => {
         if (currentCargo.type && currentCargo.weight > 0 && currentCargo.pricePerTon > 0) {
-            setTrip(prev => ({ ...prev, cargo: [...prev.cargo, { ...currentCargo, id: '' + Math.random() }] }));
+            if (editingCargoId) {
+                setTrip(prev => ({ 
+                    ...prev, 
+                    cargo: prev.cargo.map(c => c.id === editingCargoId ? { ...currentCargo, id: editingCargoId } : c) 
+                }));
+                setEditingCargoId(null);
+            } else {
+                setTrip(prev => ({ ...prev, cargo: [...prev.cargo, { ...currentCargo, id: '' + Math.random() }] }));
+            }
             setCurrentCargo({ type: '', weight: 0, pricePerTon: 0, tax: 0 });
+            setTaxInput('');
         }
     };
     const handleRemoveCargo = (id: string) => {
         setTrip(prev => ({...prev, cargo: prev.cargo.filter(c => c.id !== id)}))
+        if (editingCargoId === id) {
+            setEditingCargoId(null);
+            setCurrentCargo({ type: '', weight: 0, pricePerTon: 0, tax: 0 });
+            setTaxInput('');
+        }
     }
+    const handleEditCargo = (cargo: Cargo) => {
+        setEditingCargoId(cargo.id);
+        setCurrentCargo({ type: cargo.type, weight: cargo.weight, pricePerTon: cargo.pricePerTon, tax: cargo.tax || 0 });
+        setTaxInput(cargo.tax?.toString() || '');
+    };
 
     // Received Payments Management
     const [currentReceivedPayment, setCurrentReceivedPayment] = useState<Omit<ReceivedPayment, 'id'>>({ type: ReceivedPaymentType.ADVANCE, method: PaymentMethod.PIX, amount: 0, date: today });
+    const [editingReceivedPaymentId, setEditingReceivedPaymentId] = useState<string | null>(null);
     const handleAddReceivedPayment = () => {
         if (currentReceivedPayment.amount > 0) {
-            setTrip(prev => ({ ...prev, receivedPayments: [...prev.receivedPayments, { ...currentReceivedPayment, id: '' + Math.random() }] }));
+            if (editingReceivedPaymentId) {
+                setTrip(prev => ({ 
+                    ...prev, 
+                    receivedPayments: prev.receivedPayments.map(p => p.id === editingReceivedPaymentId ? { ...currentReceivedPayment, id: editingReceivedPaymentId } : p) 
+                }));
+                setEditingReceivedPaymentId(null);
+            } else {
+                setTrip(prev => ({ ...prev, receivedPayments: [...prev.receivedPayments, { ...currentReceivedPayment, id: '' + Math.random() }] }));
+            }
             setCurrentReceivedPayment({ type: ReceivedPaymentType.ADVANCE, method: PaymentMethod.PIX, amount: 0, date: today });
         }
     };
     const handleRemoveReceivedPayment = (id: string) => {
         setTrip(prev => ({...prev, receivedPayments: prev.receivedPayments.filter(p => p.id !== id)}));
+        if (editingReceivedPaymentId === id) {
+            setEditingReceivedPaymentId(null);
+            setCurrentReceivedPayment({ type: ReceivedPaymentType.ADVANCE, method: PaymentMethod.PIX, amount: 0, date: today });
+        }
     }
+    const handleEditReceivedPayment = (p: ReceivedPayment) => {
+        setEditingReceivedPaymentId(p.id);
+        setCurrentReceivedPayment({ type: p.type, method: p.method, amount: p.amount, date: p.date });
+    };
 
     // Trecho Management
     const [currentTrecho, setCurrentTrecho] = useState<Omit<Trecho, 'id'>>({ status: TrechoStatus.CARREGADO, kmInicial: trip.startKm || 0, kmFinal: 0, observacoes: '' });
+    const [editingTrechoId, setEditingTrechoId] = useState<string | null>(null);
     const handleAddTrecho = () => {
         if (currentTrecho.kmFinal > currentTrecho.kmInicial) {
-            setTrip(prev => ({ ...prev, trechos: [...prev.trechos, { ...currentTrecho, id: '' + Math.random() }] }));
+            if (editingTrechoId) {
+                setTrip(prev => ({ 
+                    ...prev, 
+                    trechos: prev.trechos.map(t => t.id === editingTrechoId ? { ...currentTrecho, id: editingTrechoId } : t) 
+                }));
+                setEditingTrechoId(null);
+            } else {
+                setTrip(prev => ({ ...prev, trechos: [...prev.trechos, { ...currentTrecho, id: '' + Math.random() }] }));
+            }
             setCurrentTrecho({ status: TrechoStatus.CARREGADO, kmInicial: currentTrecho.kmFinal, kmFinal: 0, observacoes: '' });
         }
     };
     const handleRemoveTrecho = (id: string) => {
         setTrip(prev => ({...prev, trechos: prev.trechos.filter(t => t.id !== id)}))
+        if (editingTrechoId === id) {
+            setEditingTrechoId(null);
+            setCurrentTrecho({ status: TrechoStatus.CARREGADO, kmInicial: trip.startKm || 0, kmFinal: 0, observacoes: '' });
+        }
     }
+    const handleEditTrecho = (t: Trecho) => {
+        setEditingTrechoId(t.id);
+        setCurrentTrecho({ status: t.status, kmInicial: t.kmInicial, kmFinal: t.kmFinal, observacoes: t.observacoes });
+    };
 
     // Fueling Management
     const [currentFueling, setCurrentFueling] = useState<Omit<Fueling, 'id'>>({ station: '', date: today, km: trip.startKm || 0, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
+    const [editingFuelingId, setEditingFuelingId] = useState<string | null>(null);
     const handleAddFueling = () => {
         if (currentFueling.station && currentFueling.liters > 0 && currentFueling.totalAmount > 0) {
-            setTrip(prev => ({ ...prev, fueling: [...prev.fueling, { ...currentFueling, id: '' + Math.random() }] }));
+            if (editingFuelingId) {
+                setTrip(prev => ({ 
+                    ...prev, 
+                    fueling: prev.fueling.map(f => f.id === editingFuelingId ? { ...currentFueling, id: editingFuelingId } : f) 
+                }));
+                setEditingFuelingId(null);
+            } else {
+                setTrip(prev => ({ ...prev, fueling: [...prev.fueling, { ...currentFueling, id: '' + Math.random() }] }));
+            }
             setCurrentFueling({ station: '', date: today, km: 0, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
         }
     };
     const handleRemoveFueling = (id: string) => {
         setTrip(prev => ({...prev, fueling: prev.fueling.filter(f => f.id !== id)}))
+        if (editingFuelingId === id) {
+            setEditingFuelingId(null);
+            setCurrentFueling({ station: '', date: today, km: trip.startKm || 0, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
+        }
     }
+    const handleEditFueling = (f: Fueling) => {
+        setEditingFuelingId(f.id);
+        setCurrentFueling({ station: f.station, date: f.date, km: f.km, liters: f.liters, totalAmount: f.totalAmount, paymentMethod: f.paymentMethod });
+    };
 
     // Expense Management
     const [currentExpense, setCurrentExpense] = useState<Omit<Expense, 'id'>>({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
+    const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
     const handleAddExpense = () => {
         if (currentExpense.description && currentExpense.amount > 0) {
-            setTrip(prev => ({ ...prev, expenses: [...prev.expenses, { ...currentExpense, id: '' + Math.random() }] }));
+            if (editingExpenseId) {
+                setTrip(prev => ({ 
+                    ...prev, 
+                    expenses: prev.expenses.map(e => e.id === editingExpenseId ? { ...currentExpense, id: editingExpenseId } : e) 
+                }));
+                setEditingExpenseId(null);
+            } else {
+                setTrip(prev => ({ ...prev, expenses: [...prev.expenses, { ...currentExpense, id: '' + Math.random() }] }));
+            }
             setCurrentExpense({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
         }
     };
      const handleRemoveExpense = (id: string) => {
         setTrip(prev => ({...prev, expenses: prev.expenses.filter(e => e.id !== id)}))
+        if (editingExpenseId === id) {
+            setEditingExpenseId(null);
+            setCurrentExpense({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
+        }
     }
+    const handleEditExpense = (e: Expense) => {
+        setEditingExpenseId(e.id);
+        setCurrentExpense({ category: e.category, description: e.description, amount: e.amount, date: e.date });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -331,7 +434,12 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                                 </span>
                                 {t.observacoes && <p className="text-xs text-slate-400 mt-1">{t.observacoes}</p>}
                             </div>
-                            <Button type="button" variant="danger" onClick={() => handleRemoveTrecho(t.id)} className="p-1 h-7 w-7"><ICONS.trash className="h-4 w-4"/></Button>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" onClick={() => handleEditTrecho(t)} className="p-1 h-7 w-7 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                    <ICONS.pencil className="h-4 w-4"/>
+                                </Button>
+                                <Button type="button" variant="danger" onClick={() => handleRemoveTrecho(t.id)} className="p-1 h-7 w-7"><ICONS.trash className="h-4 w-4"/></Button>
+                            </div>
                         </div>
                     ))}
                     </div>
@@ -369,7 +477,17 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                         <Input id="trechoKmFinal" label="KM Final" type="number" step="any" value={currentTrecho.kmFinal || ''} onChange={e => setCurrentTrecho(p => ({...p, kmFinal: e.target.valueAsNumber || 0}))}/>
                         <Input id="trechoObs" label="Observações" type="text" value={currentTrecho.observacoes || ''} onChange={e => setCurrentTrecho(p => ({...p, observacoes: e.target.value}))}/>
                     </div>
-                    <Button type="button" variant="secondary" onClick={handleAddTrecho} className="mt-2 w-full">Adicionar Trecho</Button>
+                    <div className="flex gap-2 mt-2">
+                        {editingTrechoId && (
+                            <Button type="button" variant="secondary" onClick={() => {
+                                setEditingTrechoId(null);
+                                setCurrentTrecho({ status: TrechoStatus.CARREGADO, kmInicial: trip.startKm || 0, kmFinal: 0, observacoes: '' });
+                            }} className="flex-1">Cancelar Edição</Button>
+                        )}
+                        <Button type="button" variant={editingTrechoId ? 'primary' : 'secondary'} onClick={handleAddTrecho} className="flex-[2] w-full">
+                            {editingTrechoId ? 'Salvar Alterações' : 'Adicionar Trecho'}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -387,6 +505,9 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                                </div>
                                <div className="flex items-center gap-2">
                                 <span className="font-bold">{formatCurrency((c.weight * c.pricePerTon) - (c.tax || 0))}</span>
+                                <Button type="button" onClick={() => handleEditCargo(c)} className="p-1 h-7 w-7 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                    <ICONS.pencil className="h-4 w-4"/>
+                                </Button>
                                 <Button type="button" variant="danger" onClick={() => handleRemoveCargo(c.id)} className="p-1 h-7 w-7"><ICONS.trash className="h-4 w-4"/></Button>
                                </div>
                            </div>
@@ -407,9 +528,27 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                             <AutocompleteInput id="cargoType" label="Tipo" value={currentCargo.type} onChange={e => setCurrentCargo(p => ({...p, type: e.target.value.toUpperCase()}))} suggestions={cargoTypeSuggestions} />
                             <Input id="cargoWeight" label="Peso (t)" type="number" step="any" value={currentCargo.weight || ''} onChange={e => setCurrentCargo(p => ({...p, weight: e.target.valueAsNumber || 0}))}/>
                             <Input id="cargoPrice" label="Valor/t" type="number" step="0.01" value={currentCargo.pricePerTon || ''} onChange={e => setCurrentCargo(p => ({...p, pricePerTon: e.target.valueAsNumber || 0}))}/>
-                            <Input id="cargoTax" label="Imposto (R$)" type="number" step="0.01" value={currentCargo.tax || ''} onChange={e => setCurrentCargo(p => ({...p, tax: e.target.valueAsNumber || 0}))}/>
+                            <div className="relative">
+                                <Input id="cargoTax" label="Imposto" placeholder="R$ ou %" type="text" value={taxInput} onChange={e => setTaxInput(e.target.value)}/>
+                                {taxInput.endsWith('%') && currentCargo.tax > 0 && (
+                                    <div className="absolute top-[34px] right-3 text-[10px] text-green-400 font-bold bg-slate-800/80 px-1 rounded pointer-events-none">
+                                        {formatCurrency(currentCargo.tax)}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <Button type="button" variant="secondary" onClick={handleAddCargo} className="mt-2 w-full">Adicionar Carga</Button>
+                        <div className="flex gap-2 mt-2">
+                            {editingCargoId && (
+                                <Button type="button" variant="secondary" onClick={() => {
+                                    setEditingCargoId(null);
+                                    setCurrentCargo({ type: '', weight: 0, pricePerTon: 0, tax: 0 });
+                                    setTaxInput('');
+                                }} className="flex-1">Cancelar Edição</Button>
+                            )}
+                            <Button type="button" variant={editingCargoId ? 'primary' : 'secondary'} onClick={handleAddCargo} className="flex-[2] w-full">
+                                {editingCargoId ? 'Salvar Alterações' : 'Adicionar Carga'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -423,6 +562,9 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                                <span>{p.type}: {p.method}</span>
                                <div className="flex items-center gap-2">
                                 <span className="font-bold text-green-400">{formatCurrency(p.amount)}</span>
+                                <Button type="button" onClick={() => handleEditReceivedPayment(p)} className="p-1 h-7 w-7 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                    <ICONS.pencil className="h-4 w-4"/>
+                                </Button>
                                 <Button type="button" variant="danger" onClick={() => handleRemoveReceivedPayment(p.id)} className="p-1 h-7 w-7"><ICONS.trash className="h-4 w-4"/></Button>
                                </div>
                            </div>
@@ -445,7 +587,17 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                             <Input id="recDate" label="Data" type="date" value={currentReceivedPayment.date} onChange={e => setCurrentReceivedPayment(p => ({...p, date: e.target.value}))}/>
                             <Input id="recAmount" label="Valor (R$)" type="number" step="0.01" value={currentReceivedPayment.amount || ''} onChange={e => setCurrentReceivedPayment(p => ({...p, amount: e.target.valueAsNumber || 0}))}/>
                         </div>
-                        <Button type="button" variant="secondary" onClick={handleAddReceivedPayment} className="mt-2 w-full">Adicionar Recebimento</Button>
+                        <div className="flex gap-2 mt-2">
+                            {editingReceivedPaymentId && (
+                                <Button type="button" variant="secondary" onClick={() => {
+                                    setEditingReceivedPaymentId(null);
+                                    setCurrentReceivedPayment({ type: ReceivedPaymentType.ADVANCE, method: PaymentMethod.PIX, amount: 0, date: today });
+                                }} className="flex-1">Cancelar Edição</Button>
+                            )}
+                            <Button type="button" variant={editingReceivedPaymentId ? 'primary' : 'secondary'} onClick={handleAddReceivedPayment} className="flex-[2] w-full">
+                                {editingReceivedPaymentId ? 'Salvar Alterações' : 'Adicionar Recebimento'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -461,6 +613,9 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                                <span>{f.station} - {f.km}km: {f.liters}L</span>
                                <div className="flex items-center gap-2">
                                 <span className="font-bold">{formatCurrency(f.totalAmount)}</span>
+                                <Button type="button" onClick={() => handleEditFueling(f)} className="p-1 h-7 w-7 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                    <ICONS.pencil className="h-4 w-4"/>
+                                </Button>
                                 <Button type="button" variant="danger" onClick={() => handleRemoveFueling(f.id)} className="p-1 h-7 w-7"><ICONS.trash className="h-4 w-4"/></Button>
                                </div>
                            </div>
@@ -488,7 +643,17 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                                 </div>
                             </div>
                         </div>
-                        <Button type="button" variant="secondary" onClick={handleAddFueling} className="mt-2 w-full">Adicionar Abastecimento</Button>
+                        <div className="flex gap-2 mt-2">
+                            {editingFuelingId && (
+                                <Button type="button" variant="secondary" onClick={() => {
+                                    setEditingFuelingId(null);
+                                    setCurrentFueling({ station: '', date: today, km: 0, liters: 0, totalAmount: 0, paymentMethod: PaymentMethod.CARD });
+                                }} className="flex-1">Cancelar Edição</Button>
+                            )}
+                            <Button type="button" variant={editingFuelingId ? 'primary' : 'secondary'} onClick={handleAddFueling} className="flex-[2] w-full">
+                                {editingFuelingId ? 'Salvar Alterações' : 'Adicionar Abastecimento'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -502,6 +667,9 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                                <span>{e.category}: {e.description}</span>
                                <div className="flex items-center gap-2">
                                 <span className="font-bold">{formatCurrency(e.amount)}</span>
+                                <Button type="button" onClick={() => handleEditExpense(e)} className="p-1 h-7 w-7 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30" title="Editar">
+                                    <ICONS.pencil className="h-4 w-4"/>
+                                </Button>
                                 <Button type="button" variant="danger" onClick={() => handleRemoveExpense(e.id)} className="p-1 h-7 w-7"><ICONS.trash className="h-4 w-4"/></Button>
                                </div>
                            </div>
@@ -521,7 +689,17 @@ export const TripForm: React.FC<TripFormProps> = ({ setView, trip: existingTrip 
                             <AutocompleteInput id="expDesc" label="Descrição" value={currentExpense.description} onChange={e => setCurrentExpense(p => ({...p, description: e.target.value.toUpperCase()}))} suggestions={expenseDescSuggestions}/>
                             <Input id="expAmount" label="Valor" type="number" step="0.01" value={currentExpense.amount || ''} onChange={e => setCurrentExpense(p => ({...p, amount: e.target.valueAsNumber || 0}))}/>
                         </div>
-                        <Button type="button" variant="secondary" onClick={handleAddExpense} className="mt-2 w-full">Adicionar Despesa</Button>
+                        <div className="flex gap-2 mt-2">
+                            {editingExpenseId && (
+                                <Button type="button" variant="secondary" onClick={() => {
+                                    setEditingExpenseId(null);
+                                    setCurrentExpense({ category: ExpenseCategory.OTHER, description: '', amount: 0, date: today });
+                                }} className="flex-1">Cancelar Edição</Button>
+                            )}
+                            <Button type="button" variant={editingExpenseId ? 'primary' : 'secondary'} onClick={handleAddExpense} className="flex-[2] w-full">
+                                {editingExpenseId ? 'Salvar Alterações' : 'Adicionar Despesa'}
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
