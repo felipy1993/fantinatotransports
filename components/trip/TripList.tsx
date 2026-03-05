@@ -36,7 +36,7 @@ const getTripStatusClass = (trip: Trip) => {
 };
 
 export const TripList: React.FC<TripListProps> = ({ setView }) => {
-  const { trips, getDriver, getVehicle } = useTrips();
+  const { trips, getDriver, getVehicle, drivers, vehicles } = useTrips();
   const { currentDriverId } = useSession();
   
   const today = new Date();
@@ -47,6 +47,8 @@ export const TripList: React.FC<TripListProps> = ({ setView }) => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [startMonth, setStartMonth] = useState<string>(currentMonthStr);
   const [endMonth, setEndMonth] = useState<string>(currentMonthStr);
+  const [selectedDriverId, setSelectedDriverId] = useState<string>('');
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
 
   const displayedTrips = currentDriverId
     ? trips.filter(trip => trip.driverId === currentDriverId)
@@ -60,8 +62,12 @@ export const TripList: React.FC<TripListProps> = ({ setView }) => {
     if (filterType === 'month' && startMonth && endMonth) {
       const tripDate = new Date(trip.startDate + 'T00:00:00');
       const tripYearMonth = tripDate.getFullYear() + '-' + String(tripDate.getMonth() + 1).padStart(2, '0');
-      return tripYearMonth >= startMonth && tripYearMonth <= endMonth;
+      if (tripYearMonth < startMonth || tripYearMonth > endMonth) return false;
     }
+
+    if (selectedDriverId && trip.driverId !== selectedDriverId) return false;
+    if (selectedVehicleId && trip.vehicleId !== selectedVehicleId) return false;
+
     return true;
   });
 
@@ -70,6 +76,8 @@ export const TripList: React.FC<TripListProps> = ({ setView }) => {
     setSelectedDate('');
     setStartMonth('');
     setEndMonth('');
+    setSelectedDriverId('');
+    setSelectedVehicleId('');
   };
 
   const handleExportExcel = () => {
@@ -138,10 +146,42 @@ export const TripList: React.FC<TripListProps> = ({ setView }) => {
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
-              >
-                Filtrar por Período
-              </button>
-            </div>
+                >
+                  Filtrar por Período
+                </button>
+              </div>
+
+              {/* Driver and Vehicle Selectors */}
+              {!currentDriverId && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm text-slate-300 mb-2">Motorista</label>
+                    <select
+                      value={selectedDriverId}
+                      onChange={(e) => setSelectedDriverId(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Todos os Motoristas</option>
+                      {drivers.sort((a,b) => a.name.localeCompare(b.name)).map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm text-slate-300 mb-2">Veículo (Placa)</label>
+                    <select
+                      value={selectedVehicleId}
+                      onChange={(e) => setSelectedVehicleId(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Todos os Veículos</option>
+                      {vehicles.sort((a,b) => a.plate.localeCompare(b.plate)).map(v => (
+                        <option key={v.id} value={v.id}>{v.plate} ({v.model})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
             {/* Date filter */}
             {filterType === 'date' && (
@@ -183,7 +223,7 @@ export const TripList: React.FC<TripListProps> = ({ setView }) => {
             )}
 
             {/* Clear filters button - show only when filters are active */}
-            {filterType !== 'all' && (selectedDate || startMonth || endMonth) && (
+            {(filterType !== 'all' || selectedDriverId || selectedVehicleId) && (selectedDate || startMonth || endMonth || selectedDriverId || selectedVehicleId) && (
               <div className="flex justify-end">
                 <button
                   onClick={handleClearFilters}
@@ -197,11 +237,9 @@ export const TripList: React.FC<TripListProps> = ({ setView }) => {
         </div>
 
         {/* Results info */}
-        {filterType !== 'all' && (
-          <p className="text-sm text-slate-400 mb-4">
-            Exibindo {filteredTrips.length} viagem(ns) encontrada(s)
-          </p>
-        )}
+        <p className="text-sm text-slate-400 mb-4">
+          Exibindo {filteredTrips.length} viagem(ns) encontrada(s)
+        </p>
 
         {/* Trips list */}
         <div className="space-y-4">

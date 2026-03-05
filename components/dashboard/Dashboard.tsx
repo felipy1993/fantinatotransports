@@ -28,16 +28,92 @@ export const Dashboard: React.FC<{ setView: (view: View) => void }> = ({ setView
   const { trips, drivers, vehicles } = useTrips();
 
   if (!currentDriver) {
-    const ongoingTrips = trips.filter(t => t.status === TripStatus.IN_PROGRESS).length;
+    const ongoingTrips = trips.filter(t => t.status === TripStatus.IN_PROGRESS);
+    const recentTrips = [...trips]
+      .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+      .slice(0, 5);
+
     return (
-        <div>
-            <h1 className="text-2xl font-bold mb-6 text-white">Dashboard do Administrador</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-              <StatCard icon={<ICONS.driver className="text-indigo-400"/>} label="Total de Motoristas" value={drivers.length} />
-              <StatCard icon={<ICONS.vehicle className="text-teal-400"/>} label="Total de Veículos" value={vehicles.length} />
-              <StatCard icon={<ICONS.trip className="text-amber-400"/>} label="Viagens em Andamento" value={ongoingTrips} />
+        <div className="space-y-8">
+            <div>
+              <h1 className="text-2xl font-bold mb-6 text-white tracking-tight">Torre de Controle</h1>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <StatCard icon={<ICONS.driver className="text-indigo-400"/>} label="Frotistas/Motoristas" value={drivers.length} />
+                <StatCard icon={<ICONS.vehicle className="text-teal-400"/>} label="Frota de Veículos" value={vehicles.length} />
+                <StatCard icon={<ICONS.trip className="text-orange-400"/>} label="Viagens em Andamento" value={ongoingTrips.length} />
+              </div>
             </div>
-            <TripList setView={setView} />
+
+            {ongoingTrips.length > 0 && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                  Operação em Tempo Real ({ongoingTrips.length})
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {ongoingTrips.map(trip => {
+                    const driver = drivers.find(d => d.id === trip.driverId);
+                    const vehicle = vehicles.find(v => v.id === trip.vehicleId);
+                    return (
+                      <Card key={trip.id} className="bg-slate-800/50 border-orange-500/20 hover:border-orange-500/40 transition-colors">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-bold text-white">{trip.origin} → {trip.destination}</p>
+                              <p className="text-xs text-slate-400 mt-1">{driver?.name} | {vehicle?.plate}</p>
+                            </div>
+                            <Button variant="secondary" onClick={() => setView({ type: 'viewTrip', tripId: trip.id })} className="h-8 text-xs py-1 px-3">
+                              Ver
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-slate-800/30 rounded-2xl p-6 border border-slate-700/50">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-white">Viagens Recentes</h2>
+                <Button variant="secondary" onClick={() => setView({ type: 'tripList' })} className="text-xs h-8 py-1 px-3">
+                  Ver Todas as Viagens
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {recentTrips.length > 0 ? recentTrips.map(trip => {
+                  const driver = drivers.find(d => d.id === trip.driverId);
+                  const vehicle = vehicles.find(v => v.id === trip.vehicleId);
+                  return (
+                    <div key={trip.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl hover:bg-slate-700/50 transition-colors group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-400 group-hover:bg-blue-900/30 group-hover:text-blue-400 transition-colors">
+                          <ICONS.trip className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">{trip.origin} → {trip.destination}</p>
+                          <p className="text-[10px] text-slate-500">{new Date(trip.startDate + 'T00:00:00').toLocaleDateString('pt-BR')} • {driver?.name} • {vehicle?.plate}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                          trip.status === TripStatus.COMPLETED ? 'bg-green-500/10 text-green-500' : 'bg-blue-500/10 text-blue-500'
+                        }`}>
+                          {trip.status}
+                        </span>
+                        <button onClick={() => setView({ type: 'viewTrip', tripId: trip.id })} className="p-2 text-slate-500 hover:text-white">
+                          <ICONS.chevronDown className="w-5 h-5 -rotate-90" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <p className="text-center py-6 text-slate-500 text-sm">Nenhuma viagem registrada ainda.</p>
+                )}
+              </div>
+            </div>
         </div>
     );
   }
