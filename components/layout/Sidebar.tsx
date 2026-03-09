@@ -113,6 +113,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, 
                   isActive={currentView.type === 'financial'}
                   onClick={() => handleItemClick({ type: 'financial' })}
                 />
+                <NavItem
+                  icon={<ICONS.currencyDollar />}
+                  label="Adiantamentos"
+                  isActive={currentView.type === 'advances'}
+                  onClick={() => handleItemClick({ type: 'advances' })}
+                />
               </>
             )}
           </ul>

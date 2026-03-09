@@ -194,6 +194,24 @@ export interface FinancialEntry {
     createdAt: string;
 }
 
+// --- Novas Tipagens para Adiantamentos (Controle Independente) ---
+
+export enum AdvanceCategory {
+    SALARY = 'Adiantamento de Salário',
+    VALE = 'Vale',
+    OTHER = 'Outros',
+}
+
+export interface Advance {
+    id: string;
+    driverId: string;
+    description: string;
+    category: AdvanceCategory;
+    amount: number;
+    date: string; // YYYY-MM-DD
+    createdAt: string;
+}
+
 export interface SystemConfig {
     id: string;
     dueDate: string; // YYYY-MM-DD
@@ -206,3 +224,4 @@ export interface SystemConfig {
     blockMessage?: string;
     updatedAt: string;
 }
+

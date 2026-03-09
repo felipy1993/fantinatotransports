@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { Trip, Driver, Vehicle, FixedExpense, WorkshopExpense, Admin, FinancialEntry, FinancialCategory, SystemConfig } from '../types';
+import { Trip, Driver, Vehicle, FixedExpense, WorkshopExpense, Admin, FinancialEntry, FinancialCategory, SystemConfig, Advance } from '../types';
 import { dataService } from '../services/dataService';
 import { generateSalt, hashPassword } from '../utils/crypto';
 
@@ -17,6 +17,7 @@ interface TripContextType {
   workshopExpenses: WorkshopExpense[];
   financialEntries: FinancialEntry[];
   financialCategories: FinancialCategory[];
+  advances: Advance[];
   systemConfig: SystemConfig | null;
   isLoading: boolean;
   showPaymentModal: boolean;
@@ -48,6 +49,9 @@ interface TripContextType {
   deleteFinancialEntry: (entryId: string) => Promise<void>;
   addFinancialCategory: (name: string) => Promise<void>;
   deleteFinancialCategory: (id: string) => Promise<void>;
+  addAdvance: (advance: Omit<Advance, 'id' | 'createdAt'>) => Promise<void>;
+  updateAdvance: (advance: Advance) => Promise<void>;
+  deleteAdvance: (advanceId: string) => Promise<void>;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
@@ -61,6 +65,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [workshopExpenses, setWorkshopExpenses] = useState<WorkshopExpense[]>([]);
     const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>([]);
     const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
+    const [advances, setAdvances] = useState<Advance[]>([]);
     const [systemConfig, setSystemConfig] = useState<SystemConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -78,6 +83,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     workshopExpensesData,
                     financialEntriesData,
                     financialCategoriesData,
+                    advancesData,
                     systemConfigData
                 ] = await Promise.all([
                     dataService.list('trips'),
@@ -88,6 +94,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     dataService.list('workshopExpenses'),
                     dataService.list('financialEntries'),
                     dataService.list('financialCategories'),
+                    dataService.list('advances').catch(() => []),
                     dataService.list('system_config').catch(() => []) // Handle missing collection gracefully
                 ]);
 
@@ -99,6 +106,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setWorkshopExpenses(workshopExpensesData as WorkshopExpense[]);
                 setFinancialEntries(financialEntriesData as FinancialEntry[]);
                 setFinancialCategories(financialCategoriesData as FinancialCategory[]);
+                setAdvances(advancesData as Advance[]);
                 
                 // systemConfig is expected to be a single record or empty
                 const configs = systemConfigData as SystemConfig[];
@@ -385,6 +393,26 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setFinancialCategories(prev => prev.filter(c => c.id !== id));
   };
 
+  const addAdvance = async (advance: Omit<Advance, 'id' | 'createdAt'>) => {
+    const newAdvance = {
+      ...advance,
+      createdAt: new Date().toISOString(),
+    };
+    const created = await dataService.create('advances', newAdvance);
+    setAdvances(prev => [created as Advance, ...prev]);
+  };
+
+  const updateAdvance = async (updatedAdvance: Advance) => {
+    const { id, ...data } = updatedAdvance;
+    const updated = await dataService.update('advances', id, data);
+    setAdvances(prev => prev.map(a => a.id === id ? updated as Advance : a));
+  };
+
+  const deleteAdvance = async (advanceId: string) => {
+    await dataService.delete('advances', advanceId);
+    setAdvances(prev => prev.filter(a => a.id !== advanceId));
+  };
+
   return (
     <TripContext.Provider value={{ 
         trips, drivers, vehicles, admins, fixedExpenses, workshopExpenses, isLoading,
@@ -398,6 +426,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         financialEntries, financialCategories,
         addFinancialEntry, updateFinancialEntry, deleteFinancialEntry,
         addFinancialCategory, deleteFinancialCategory,
+        advances, addAdvance, updateAdvance, deleteAdvance,
         systemConfig,
         showPaymentModal, setShowPaymentModal,
         daysToExpiration

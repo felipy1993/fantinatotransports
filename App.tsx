@@ -22,6 +22,7 @@ import { Trip } from './types';
 import { ProfileSettings } from './components/profile/ProfileSettings';
 import { AnalysisDashboard } from './components/analysis/AnalysisDashboard';
 import { FinancialManagement } from './components/management/FinancialManagement';
+import { AdvanceManagement } from './components/management/AdvanceManagement';
 
 export type View =
   | { type: 'dashboard' }
@@ -37,6 +38,7 @@ export type View =
   | { type: 'billing' }
   | { type: 'analysis' }
   | { type: 'financial' }
+  | { type: 'advances' }
   | { type: 'profileSettings' };
 
 const MainContent: React.FC<{ view: View; setView: (view: View) => void }> = ({ view, setView }) => {
@@ -61,6 +63,8 @@ const MainContent: React.FC<{ view: View; setView: (view: View) => void }> = ({ 
         return <AnalysisDashboard />;
     case 'financial':
         return <FinancialManagement />;
+    case 'advances':
+        return <AdvanceManagement />;
     case 'newTrip':
       return <TripForm setView={setView} />;
     case 'editTrip': {
