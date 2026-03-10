@@ -74,27 +74,18 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const fetchAllData = async () => {
             setIsLoading(true);
             try {
+                // Primeira Fase: Carregamento Crítico (Rápido) para liberar a tela inicial
                 const [
                     tripsData,
                     driversData,
                     vehiclesData,
                     adminsData,
-                    fixedExpensesData,
-                    workshopExpensesData,
-                    financialEntriesData,
-                    financialCategoriesData,
-                    advancesData,
                     systemConfigData
                 ] = await Promise.all([
                     dataService.list('trips'),
                     dataService.list('drivers'),
                     dataService.list('vehicles'),
                     dataService.list('admins'),
-                    dataService.list('fixedExpenses'),
-                    dataService.list('workshopExpenses'),
-                    dataService.list('financialEntries'),
-                    dataService.list('financialCategories'),
-                    dataService.list('advances').catch(() => []),
                     dataService.list('system_config').catch(() => []) // Handle missing collection gracefully
                 ]);
 
@@ -102,11 +93,6 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setDrivers(driversData as Driver[]);
                 setVehicles(vehiclesData as Vehicle[]);
                 setAdmins(adminsData as Admin[]);
-                setFixedExpenses(fixedExpensesData as FixedExpense[]);
-                setWorkshopExpenses(workshopExpensesData as WorkshopExpense[]);
-                setFinancialEntries(financialEntriesData as FinancialEntry[]);
-                setFinancialCategories(financialCategoriesData as FinancialCategory[]);
-                setAdvances(advancesData as Advance[]);
                 
                 // systemConfig is expected to be a single record or empty
                 const configs = systemConfigData as SystemConfig[];
@@ -128,7 +114,43 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     });
                 }
 
-                // Seed logic (if enabled)
+                // Liberar a tela inicial pro usuário IMEDIATAMENTE!
+                setIsLoading(false);
+
+                // Segunda Fase: Carregamento em Segundo Plano
+                Promise.all([
+                    dataService.list('fixedExpenses'),
+                    dataService.list('workshopExpenses'),
+                    dataService.list('financialEntries'),
+                    dataService.list('financialCategories'),
+                    dataService.list('advances').catch(() => [])
+                ]).then(async ([
+                    fixedExpensesData,
+                    workshopExpensesData,
+                    financialEntriesData,
+                    financialCategoriesData,
+                    advancesData
+                ]) => {
+                    setFixedExpenses(fixedExpensesData as FixedExpense[]);
+                    setWorkshopExpenses(workshopExpensesData as WorkshopExpense[]);
+                    setFinancialEntries(financialEntriesData as FinancialEntry[]);
+                    setFinancialCategories(financialCategoriesData as FinancialCategory[]);
+                    setAdvances(advancesData as Advance[]);
+
+                    // Seed logic for financialCategories (if enabled)
+                    const shouldSeed = (window as any).__ENABLE_SEED__ === true;
+                    if (shouldSeed && financialCategoriesData.length === 0) {
+                        const baseCats = ['DESPESAS FIXAS', 'FORNECEDOR', 'IMPOSTO', 'SALARIO', 'OUTRO'];
+                        const createdCats = [];
+                        for (const cat of baseCats) {
+                            const newCat = await dataService.create('financialCategories', { name: cat, createdAt: new Date().toISOString() });
+                            createdCats.push(newCat as FinancialCategory);
+                        }
+                        setFinancialCategories(createdCats);
+                    }
+                }).catch(error => console.error("Error fetching background data:", error));
+
+                // Seed logic (if enabled) for critical data
                 const shouldSeed = (window as any).__ENABLE_SEED__ === true;
                 if (shouldSeed) {
                     if (adminsData.length === 0) {
@@ -154,16 +176,6 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         setDrivers([newDriver as Driver]);
                     }
 
-                    if (financialCategoriesData.length === 0) {
-                        const baseCats = ['DESPESAS FIXAS', 'FORNECEDOR', 'IMPOSTO', 'SALARIO', 'OUTRO'];
-                        const createdCats = [];
-                        for (const cat of baseCats) {
-                            const newCat = await dataService.create('financialCategories', { name: cat, createdAt: new Date().toISOString() });
-                            createdCats.push(newCat as FinancialCategory);
-                        }
-                        setFinancialCategories(createdCats);
-                    }
-
                     if (configs.length === 0) {
                         console.log("No system_config found, creating default...");
                         const defaultConfig = {
@@ -181,8 +193,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     }
                 }
             } catch (error) {
-                console.error("Error fetching data:", error);
-            } finally {
+                console.error("Error fetching critical data:", error);
                 setIsLoading(false);
             }
         };
