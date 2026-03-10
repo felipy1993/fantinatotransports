@@ -46,6 +46,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [session, setSession]);
 
   const login = async (username: string, password: string): Promise<boolean> => {
+    // Flag para ativar/desativar login de motoristas
+    const ENABLE_DRIVER_LOGIN = false; 
+
     const uname = (username || '').trim().toUpperCase();
     const pwd = (password || '').trim();
     if (uname.length === 0 || pwd.length === 0) {
@@ -97,31 +100,33 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         // Not an admin or other error, continue to check drivers
       }
 
-      // Check drivers
-      try {
-        const driver = await dataService.findOne('drivers', `name = "${uname}"`) as Driver;
-        if (driver && driver.passwordHash) {
-          let isValid = false;
-          if (!driver.salt || driver.salt === 'N/A') {
-            isValid = pwd === driver.passwordHash;
-          } else {
-            try {
-              isValid = await verifyPassword(pwd, driver.salt, driver.passwordHash);
-            } catch (err) {
+      // Check drivers - Somente se ENABLE_DRIVER_LOGIN for true
+      if (ENABLE_DRIVER_LOGIN) {
+        try {
+          const driver = await dataService.findOne('drivers', `name = "${uname}"`) as Driver;
+          if (driver && driver.passwordHash) {
+            let isValid = false;
+            if (!driver.salt || driver.salt === 'N/A') {
               isValid = pwd === driver.passwordHash;
+            } else {
+              try {
+                isValid = await verifyPassword(pwd, driver.salt, driver.passwordHash);
+              } catch (err) {
+                isValid = pwd === driver.passwordHash;
+              }
+            }
+
+            if (isValid) {
+              const exp = Date.now() + 8 * 60 * 60 * 1000;
+              setSession({ user: { name: driver.name, role: 'driver', driverId: driver.id, userId: driver.id }, expiresAt: exp });
+              if (data[uname]) delete data[uname];
+              localStorage.setItem(attemptsKey, JSON.stringify(data));
+              return true;
             }
           }
-
-          if (isValid) {
-            const exp = Date.now() + 8 * 60 * 60 * 1000;
-            setSession({ user: { name: driver.name, role: 'driver', driverId: driver.id, userId: driver.id }, expiresAt: exp });
-            if (data[uname]) delete data[uname];
-            localStorage.setItem(attemptsKey, JSON.stringify(data));
-            return true;
-          }
+        } catch (e) {
+          // Not a driver or other error
         }
-      } catch (e) {
-        // Not a driver or other error
       }
     } catch (error) {
         console.error("Login error:", error);
