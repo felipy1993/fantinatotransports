@@ -176,6 +176,32 @@ export interface WorkshopExpense {
     createdAt: string;
 }
 
+// --- Novas Tipagens para Histórico de Manutenção (Independente) ---
+
+export interface Maintenance {
+    id: string;
+    vehicleId: string;
+    date: string;
+    provider: string; // Fornecedor / Responsável
+    category: string;
+    description: string;
+    amount: number;
+    createdAt: string;
+}
+
+export interface FuelingRecord {
+    id: string;
+    vehicleId: string;
+    station: string;
+    date: string;
+    totalAmount: number;
+    liters: number;
+    pricePerLiter: number;
+    km: number;
+    paymentMethod: string;
+    createdAt: string;
+}
+
 // --- Novas Tipagens para Financeiro Geral ---
 
 export interface FinancialCategory {

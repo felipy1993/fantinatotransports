@@ -23,6 +23,9 @@ import { ProfileSettings } from './components/profile/ProfileSettings';
 import { AnalysisDashboard } from './components/analysis/AnalysisDashboard';
 import { FinancialManagement } from './components/management/FinancialManagement';
 import { AdvanceManagement } from './components/management/AdvanceManagement';
+import { FuelingDashboard } from './components/management/FuelingDashboard';
+import { FuelingManagement } from './components/management/FuelingManagement';
+import { MaintenanceManagement } from './components/management/MaintenanceManagement';
 
 export type View =
   | { type: 'dashboard' }
@@ -39,6 +42,9 @@ export type View =
   | { type: 'analysis' }
   | { type: 'financial' }
   | { type: 'advances' }
+  | { type: 'fuelingDashboard' }
+  | { type: 'fuelingManagement' }
+  | { type: 'maintenance' }
   | { type: 'profileSettings' };
 
 const MainContent: React.FC<{ view: View; setView: (view: View) => void }> = ({ view, setView }) => {
@@ -65,6 +71,12 @@ const MainContent: React.FC<{ view: View; setView: (view: View) => void }> = ({ 
         return <FinancialManagement />;
     case 'advances':
         return <AdvanceManagement />;
+    case 'fuelingDashboard':
+        return <FuelingDashboard setView={setView} />;
+    case 'fuelingManagement':
+        return <FuelingManagement />;
+    case 'maintenance':
+        return <MaintenanceManagement />;
     case 'newTrip':
       return <TripForm setView={setView} />;
     case 'editTrip': {

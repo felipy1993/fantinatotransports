@@ -1,8 +1,8 @@
-const CACHE_NAME = 'prateado-transporte-v2';
+const CACHE_NAME = 'prateado-transporte-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './dist/bundle.js',
+  './dist/bundle.js?v=3',
   './assets/logo.png',
   './manifest.json',
   './runtime-config.js'

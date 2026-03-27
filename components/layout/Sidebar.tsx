@@ -66,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, 
       ></div>
       
       {/* Main Sidebar */}
-      <aside className={`w-64 bg-slate-800 p-4 flex flex-col fixed top-0 left-0 h-full z-40 transform transition-transform lg:translate-x-0 print:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`w-64 bg-slate-800 p-4 pb-12 flex flex-col fixed top-0 left-0 h-full z-40 transform transition-transform lg:translate-x-0 print:hidden overflow-y-auto ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col items-center mb-8 px-2">
           <img src="assets/logo.png?v=1.3" alt="Logo" className="w-full h-auto object-contain mb-3 rounded-lg" onError={(e) => (e.currentTarget.style.display = 'none')} />
           <div className="text-center">
@@ -118,6 +118,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, 
                   label="Adiantamentos"
                   isActive={currentView.type === 'advances'}
                   onClick={() => handleItemClick({ type: 'advances' })}
+                />
+                <NavItem
+                  icon={<ICONS.truck />}
+                  label="Manutenção"
+                  isActive={currentView.type === 'maintenance'}
+                  onClick={() => handleItemClick({ type: 'maintenance' })}
+                />
+                <NavItem
+                  icon={<ICONS.gasPump />}
+                  label="Abastecimento"
+                  isActive={currentView.type === 'fuelingManagement'}
+                  onClick={() => handleItemClick({ type: 'fuelingManagement' })}
+                />
+                <NavItem
+                  icon={<ICONS.chartBar />}
+                  label="Relat. Combustível"
+                  isActive={currentView.type === 'fuelingDashboard'}
+                  onClick={() => handleItemClick({ type: 'fuelingDashboard' })}
                 />
               </>
             )}

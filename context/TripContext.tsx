@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { Trip, Driver, Vehicle, FixedExpense, WorkshopExpense, Admin, FinancialEntry, FinancialCategory, SystemConfig, Advance } from '../types';
+import { Trip, Driver, Vehicle, FixedExpense, WorkshopExpense, Admin, FinancialEntry, FinancialCategory, SystemConfig, Advance, Maintenance, FuelingRecord } from '../types';
 import { dataService } from '../services/dataService';
 import { generateSalt, hashPassword } from '../utils/crypto';
 
@@ -18,6 +18,8 @@ interface TripContextType {
   financialEntries: FinancialEntry[];
   financialCategories: FinancialCategory[];
   advances: Advance[];
+  maintenance: Maintenance[];
+  fuelingRecords: FuelingRecord[];
   systemConfig: SystemConfig | null;
   isLoading: boolean;
   showPaymentModal: boolean;
@@ -52,6 +54,12 @@ interface TripContextType {
   addAdvance: (advance: Omit<Advance, 'id' | 'createdAt'>) => Promise<void>;
   updateAdvance: (advance: Advance) => Promise<void>;
   deleteAdvance: (advanceId: string) => Promise<void>;
+  addMaintenance: (maintenance: Omit<Maintenance, 'id' | 'createdAt'>) => Promise<void>;
+  updateMaintenance: (maintenance: Maintenance) => Promise<void>;
+  deleteMaintenance: (maintenanceId: string) => Promise<void>;
+  addFuelingRecord: (fueling: Omit<FuelingRecord, 'id' | 'createdAt'>) => Promise<void>;
+  updateFuelingRecord: (fueling: FuelingRecord) => Promise<void>;
+  deleteFuelingRecord: (fuelingId: string) => Promise<void>;
 }
 
 const TripContext = createContext<TripContextType | undefined>(undefined);
@@ -66,6 +74,8 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>([]);
     const [financialCategories, setFinancialCategories] = useState<FinancialCategory[]>([]);
     const [advances, setAdvances] = useState<Advance[]>([]);
+    const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
+    const [fuelingRecords, setFuelingRecords] = useState<FuelingRecord[]>([]);
     const [systemConfig, setSystemConfig] = useState<SystemConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -123,19 +133,25 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     dataService.list('workshopExpenses'),
                     dataService.list('financialEntries'),
                     dataService.list('financialCategories'),
-                    dataService.list('advances').catch(() => [])
+                    dataService.list('advances').catch(() => []),
+                    dataService.list('maintenance').catch(() => []),
+                    dataService.list('fueling_records').catch(() => [])
                 ]).then(async ([
                     fixedExpensesData,
                     workshopExpensesData,
                     financialEntriesData,
                     financialCategoriesData,
-                    advancesData
+                    advancesData,
+                    maintenanceData,
+                    fuelingData
                 ]) => {
                     setFixedExpenses(fixedExpensesData as FixedExpense[]);
                     setWorkshopExpenses(workshopExpensesData as WorkshopExpense[]);
                     setFinancialEntries(financialEntriesData as FinancialEntry[]);
                     setFinancialCategories(financialCategoriesData as FinancialCategory[]);
                     setAdvances(advancesData as Advance[]);
+                    setMaintenance(maintenanceData as Maintenance[]);
+                    setFuelingRecords(fuelingData as FuelingRecord[]);
 
                     // Seed logic for financialCategories (if enabled)
                     const shouldSeed = (window as any).__ENABLE_SEED__ === true;
@@ -424,6 +440,46 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setAdvances(prev => prev.filter(a => a.id !== advanceId));
   };
 
+  const addMaintenance = async (maint: Omit<Maintenance, 'id' | 'createdAt'>) => {
+    const newMaint = {
+      ...maint,
+      createdAt: new Date().toISOString(),
+    };
+    const created = await dataService.create('maintenance', newMaint);
+    setMaintenance(prev => [created as Maintenance, ...prev]);
+  };
+
+  const updateMaintenance = async (updatedMaint: Maintenance) => {
+    const { id, ...data } = updatedMaint;
+    const updated = await dataService.update('maintenance', id, data);
+    setMaintenance(prev => prev.map(m => m.id === id ? updated as Maintenance : m));
+  };
+
+  const deleteMaintenance = async (maintenanceId: string) => {
+    await dataService.delete('maintenance', maintenanceId);
+    setMaintenance(prev => prev.filter(m => m.id !== maintenanceId));
+  };
+
+  const addFuelingRecord = async (fueling: Omit<FuelingRecord, 'id' | 'createdAt'>) => {
+    const newFueling = {
+      ...fueling,
+      createdAt: new Date().toISOString(),
+    };
+    const created = await dataService.create('fueling_records', newFueling);
+    setFuelingRecords(prev => [created as FuelingRecord, ...prev]);
+  };
+
+  const updateFuelingRecord = async (updatedFueling: FuelingRecord) => {
+    const { id, ...data } = updatedFueling;
+    const updated = await dataService.update('fueling_records', id, data);
+    setFuelingRecords(prev => prev.map(f => f.id === id ? updated as FuelingRecord : f));
+  };
+
+  const deleteFuelingRecord = async (fuelingId: string) => {
+    await dataService.delete('fueling_records', fuelingId);
+    setFuelingRecords(prev => prev.filter(f => f.id !== fuelingId));
+  };
+
   return (
     <TripContext.Provider value={{ 
         trips, drivers, vehicles, admins, fixedExpenses, workshopExpenses, isLoading,
@@ -438,6 +494,8 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         addFinancialEntry, updateFinancialEntry, deleteFinancialEntry,
         addFinancialCategory, deleteFinancialCategory,
         advances, addAdvance, updateAdvance, deleteAdvance,
+        maintenance, addMaintenance, updateMaintenance, deleteMaintenance,
+        fuelingRecords, addFuelingRecord, updateFuelingRecord, deleteFuelingRecord,
         systemConfig,
         showPaymentModal, setShowPaymentModal,
         daysToExpiration

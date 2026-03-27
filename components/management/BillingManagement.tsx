@@ -9,6 +9,16 @@ const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
 
+const calculateDays = (start: string, end: string) => {
+    if (!start || !end) return 0;
+    const s = new Date(start + 'T00:00:00');
+    const e = new Date(end + 'T00:00:00');
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+    const diffTime = e.getTime() - s.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays + 1);
+};
+
 const StatCard: React.FC<{ label: string; value: string; className?: string }> = ({ label, value, className = '' }) => (
     <div className={`bg-slate-800 p-4 rounded-lg ${className}`}>
         <p className="text-sm text-slate-400">{label}</p>
@@ -48,7 +58,12 @@ export const BillingManagement: React.FC = () => {
             const totalFreight = trip.cargo.reduce((cargoSum, c) => cargoSum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
             const totalFueling = trip.fueling.reduce((fuelSum, f) => fuelSum + f.totalAmount, 0);
             const totalOtherExpenses = trip.expenses.reduce((expSum, e) => expSum + e.amount, 0);
-            const totalTripExpenses = totalFueling + totalOtherExpenses;
+            
+            // Diárias corrigidas
+            const travelDays = calculateDays(trip.startDate, trip.endDate);
+            const totalDailyAmount = trip.totalDailyAmount || (travelDays * (trip.dailyRate || 0));
+            
+            const totalTripExpenses = totalFueling + totalOtherExpenses + totalDailyAmount;
             const driverCommission = (totalFreight * (trip.driverCommissionRate || 0)) / 100;
             const tripNetProfit = totalFreight - driverCommission - totalTripExpenses;
             return sum + tripNetProfit;
@@ -105,7 +120,11 @@ export const BillingManagement: React.FC = () => {
             const totalFreight = trip.cargo.reduce((cargoSum, c) => cargoSum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
             const totalFueling = trip.fueling.reduce((fuelSum, f) => fuelSum + f.totalAmount, 0);
             const totalOtherExpenses = trip.expenses.reduce((expSum, e) => expSum + e.amount, 0);
-            const totalTripExpenses = totalFueling + totalOtherExpenses;
+            
+            const travelDays = calculateDays(trip.startDate, trip.endDate);
+            const totalDailyAmount = trip.totalDailyAmount || (travelDays * (trip.dailyRate || 0));
+            
+            const totalTripExpenses = totalFueling + totalOtherExpenses + totalDailyAmount;
             const driverCommission = (totalFreight * (trip.driverCommissionRate || 0)) / 100;
             const tripNetProfit = totalFreight - driverCommission - totalTripExpenses;
 

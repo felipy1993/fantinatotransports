@@ -149,15 +149,19 @@ export const AccountsPayable: React.FC = () => {
     }, [allPayableItems, searchTerm, plateFilter, startDate, endDate, categoryFilter, getVehicle]);
 
     const filteredTotal = useMemo(() => {
-        return filteredItems.reduce((sum, item) => sum + item.totalAmount, 0);
+        return filteredItems.reduce((sum, item) => sum + (item.totalAmount - item.amountPaid), 0);
     }, [filteredItems]);
 
-    const filteredWorkshopTotal = useMemo(() => {
-        return filteredItems.filter(item => item.category === 'Despesas Oficina').reduce((sum, item) => sum + item.totalAmount, 0);
+    const filteredTotalPaid = useMemo(() => {
+        return filteredItems.reduce((sum, item) => sum + item.amountPaid, 0);
     }, [filteredItems]);
 
-    const filteredOtherTotal = useMemo(() => {
-        return filteredItems.filter(item => item.category === 'Despesas').reduce((sum, item) => sum + item.totalAmount, 0);
+    const filteredWorkshopPending = useMemo(() => {
+        return filteredItems.filter(item => item.category === 'Despesas Oficina').reduce((sum, item) => sum + (item.totalAmount - item.amountPaid), 0);
+    }, [filteredItems]);
+
+    const filteredOtherPending = useMemo(() => {
+        return filteredItems.filter(item => item.category === 'Despesas').reduce((sum, item) => sum + (item.totalAmount - item.amountPaid), 0);
     }, [filteredItems]);
     
     const handleDelete = async (item: PayableItem) => {
@@ -396,18 +400,18 @@ export const AccountsPayable: React.FC = () => {
                      <div className="flex flex-wrap items-center justify-between gap-6 bg-slate-900/50 p-4 rounded-lg border border-slate-800/50">
                         <div className="flex flex-wrap gap-8 items-center">
                             <div className="min-w-[120px]">
-                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Filtrado</p>
+                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Saldo Devedor (Filtro)</p>
                                 <p className="text-xl sm:text-2xl font-black text-yellow-400">{formatCurrency(filteredTotal)}</p>
                             </div>
                             <div className="w-[1px] h-10 bg-slate-800 hidden sm:block"></div>
                             <div className="min-w-[120px]">
-                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Despesas Oficina</p>
-                                <p className="text-xl sm:text-2xl font-black text-blue-400">{formatCurrency(filteredWorkshopTotal)}</p>
+                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Já Pago</p>
+                                <p className="text-xl sm:text-2xl font-black text-emerald-400">{formatCurrency(filteredTotalPaid)}</p>
                             </div>
                             <div className="w-[1px] h-10 bg-slate-800 hidden sm:block"></div>
                             <div className="min-w-[120px]">
-                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Outras Despesas</p>
-                                <p className="text-xl sm:text-2xl font-black text-orange-400">{formatCurrency(filteredOtherTotal)}</p>
+                                <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Oficina Aberto</p>
+                                <p className="text-xl sm:text-2xl font-black text-blue-400">{formatCurrency(filteredWorkshopPending)}</p>
                             </div>
                         </div>
                         <div className="flex gap-2 no-print">

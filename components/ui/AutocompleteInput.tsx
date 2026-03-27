@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 
 interface AutocompleteInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   label: string;
@@ -8,7 +8,7 @@ interface AutocompleteInputProps extends Omit<React.InputHTMLAttributes<HTMLInpu
   onSelectSuggestion?: (value: string) => void;
 }
 
-export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ 
+export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputProps>(({ 
   label, 
   id, 
   suggestions = [], 
@@ -16,10 +16,14 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   onChange, 
   onSelectSuggestion,
   ...props 
-}) => {
+}, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Expose the input element to parent ref
+  useImperativeHandle(ref, () => inputRef.current!);
   
   // Normalize value for filtering
   const valStr = String(value || '');
@@ -79,6 +83,7 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       </label>
       <div className="relative group mt-1">
         <input
+          ref={inputRef}
           id={id}
           value={value}
           onChange={(e) => {
@@ -121,4 +126,6 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       </div>
     </div>
   );
-};
+});
+
+AutocompleteInput.displayName = 'AutocompleteInput';

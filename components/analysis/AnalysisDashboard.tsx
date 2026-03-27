@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTrips } from '../../context/TripContext';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { BarChart } from '../charts/BarChart';
+import { LineChart } from '../charts/LineChart';
 import { FixedExpense, WorkshopExpense } from '../../types';
 import { Tooltip } from '../ui/Tooltip';
 import { Button } from '../ui/Button';
@@ -11,6 +11,16 @@ import { exportToXLSX } from '../../utils/exportUtils';
 
 const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
+const calculateDays = (start: string, end: string) => {
+    if (!start || !end) return 0;
+    const s = new Date(start + 'T00:00:00');
+    const e = new Date(end + 'T00:00:00');
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+    const diffTime = e.getTime() - s.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays + 1);
 };
 
 const KPICard: React.FC<{ title: string; value: number; colorClass?: string; tooltipText: string }> = ({ title, value, colorClass = 'text-white', tooltipText }) => (
@@ -27,7 +37,7 @@ const KPICard: React.FC<{ title: string; value: number; colorClass?: string; too
 
 
 export const AnalysisDashboard: React.FC = () => {
-    const { trips, fixedExpenses, workshopExpenses, financialEntries, getVehicle, vehicles } = useTrips();
+    const { trips, fixedExpenses, workshopExpenses, financialEntries, fuelingRecords = [], getVehicle, vehicles } = useTrips();
     
     const today = new Date();
     const formatToMonthString = (date: Date) => `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -84,126 +94,160 @@ export const AnalysisDashboard: React.FC = () => {
         const filteredFixedExpenses = getExpensesInRange(fixedExpenses);
         const filteredWorkshopExpenses = getExpensesInRange(workshopExpenses);
         
-        const filteredFinancialEntries = financialEntries.filter(entry => {
+        const filteredFinancialEntries = (financialEntries || []).filter(entry => {
             const dueDate = new Date(`${entry.dueDate}T00:00:00Z`);
             return dueDate >= start && dueDate <= end;
         });
 
-        return { filteredTrips, filteredFixedExpenses, filteredWorkshopExpenses, filteredFinancialEntries };
-    }, [startDate, endDate, selectedVehicleId, trips, fixedExpenses, workshopExpenses, financialEntries]);
+        const filteredFuelingRecords = fuelingRecords.filter(f => {
+            const fDate = new Date(`${f.date}T00:00:00Z`);
+            const vehicleMatch = !selectedVehicleId || String(f.vehicleId) === String(selectedVehicleId);
+            return vehicleMatch && fDate >= start && fDate <= end;
+        });
+
+        return { filteredTrips, filteredFixedExpenses, filteredWorkshopExpenses, filteredFinancialEntries, filteredFuelingRecords };
+    }, [startDate, endDate, selectedVehicleId, trips, fixedExpenses, workshopExpenses, financialEntries, fuelingRecords]);
 
     // Specialized KPI Logic
     const stats = useMemo(() => {
+        let taxCosts = 0;
+        let dailyRateCosts = 0;
+
         const totalRevenue = filteredData.filteredTrips.reduce((sum, trip) => {
             return sum + (trip.cargo || []).reduce((cargoSum, c) => cargoSum + (c.weight * c.pricePerTon), 0);
         }, 0);
 
-        const tripCosts = filteredData.filteredTrips.reduce((sum, trip) => {
-            const tripNetRevenue = (trip.cargo || []).reduce((cargoSum, c) => cargoSum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
-            const tripFueling = (trip.fueling || []).reduce((fuelSum, f) => fuelSum + f.totalAmount, 0);
+        const tripCostsNoFuel = filteredData.filteredTrips.reduce((sum, trip) => {
+            const tripNetRevenue = (trip.cargo || []).reduce((cargoSum, c) => {
+                const cargoTax = (c.tax || 0);
+                taxCosts += cargoTax;
+                return cargoSum + (c.weight * c.pricePerTon) - cargoTax;
+            }, 0);
+            
             const tripOtherExpenses = (trip.expenses || []).reduce((expSum, e) => expSum + e.amount, 0);
+            
+            // Diárias calculadas conforme o TripDetails
+            const travelDays = calculateDays(trip.startDate, trip.endDate);
+            const tripDailyAmount = trip.totalDailyAmount || (travelDays * (trip.dailyRate || 0));
+            dailyRateCosts += tripDailyAmount;
+
             const driverCommission = (tripNetRevenue * (trip.driverCommissionRate || 0)) / 100;
-            return sum + tripFueling + tripOtherExpenses + driverCommission;
+            return sum + tripOtherExpenses + driverCommission + tripDailyAmount;
         }, 0);
 
+        const fuelCosts = filteredData.filteredFuelingRecords.reduce((sum, f) => sum + f.totalAmount, 0);
         const maintenanceCosts = filteredData.filteredWorkshopExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         const fixedCosts = filteredData.filteredFixedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         const financialCosts = (filteredData.filteredFinancialEntries || []).reduce((sum, exp) => sum + exp.amount, 0);
 
+        // Adicionando taxCosts ao totalAllExpenses pois o totalRevenue é BRUTO
+        const totalAllExpenses = tripCostsNoFuel + fuelCosts + maintenanceCosts + fixedCosts + financialCosts + taxCosts;
+
         return {
             revenue: totalRevenue,
-            tripCosts,
+            fuel: fuelCosts,
+            tripCosts: tripCostsNoFuel + fuelCosts,
             maintenance: maintenanceCosts,
             fixed: fixedCosts,
             financial: financialCosts,
-            operationalResult: totalRevenue - tripCosts - maintenanceCosts,
-            netProfit: totalRevenue - tripCosts - maintenanceCosts - fixedCosts - financialCosts
+            tax: taxCosts,
+            dailyRate: dailyRateCosts,
+            totalExpenses: totalAllExpenses,
+            operationalResult: totalRevenue - (tripCostsNoFuel + fuelCosts) - maintenanceCosts - taxCosts,
+            netProfit: totalRevenue - totalAllExpenses
         };
     }, [filteredData]);
 
-    const monthlyAnalysisData = useMemo(() => {
-        const [startYear, startMonth] = startDate.split('-').map(Number);
-        const [endYear, endMonth] = endDate.split('-').map(Number);
+    const fixedYearlyTrendData = useMemo(() => {
+        const curYear = today.getFullYear();
+        const start = new Date(Date.UTC(curYear, 0, 1));
+        const end = new Date(Date.UTC(curYear, today.getMonth(), 31, 23, 59, 59, 999));
 
-        const monthlyDataMap = new Map<string, { revenue: number; fleetExpenses: number; globalExpenses: number }>();
-        
-        const finalMonth = new Date(Date.UTC(endYear, endMonth - 1, 1));
-        let currentMonth = new Date(Date.UTC(startYear, startMonth - 1, 1));
-        
-        while (currentMonth <= finalMonth) {
-            const key = `${currentMonth.getUTCFullYear()}-${(currentMonth.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-            monthlyDataMap.set(key, { revenue: 0, fleetExpenses: 0, globalExpenses: 0 });
-            currentMonth.setUTCMonth(currentMonth.getUTCMonth() + 1);
-        }
+        const labels: string[] = [];
+        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        for (let i = 0; i <= today.getMonth(); i++) labels.push(monthNames[i]);
 
-        filteredData.filteredTrips.forEach(trip => {
+        const revenue = Array(labels.length).fill(0);
+        const fleetExpenses = Array(labels.length).fill(0);
+        const totalExpenses = Array(labels.length).fill(0);
+
+        // Trips integration
+        trips.filter(t => !selectedVehicleId || String(t.vehicleId) === String(selectedVehicleId)).forEach(trip => {
             const tripDate = new Date(`${trip.startDate}T00:00:00Z`);
-            const key = `${tripDate.getUTCFullYear()}-${(tripDate.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-            const monthData = monthlyDataMap.get(key);
-
-            if (monthData) {
+            if (tripDate.getUTCFullYear() === curYear && tripDate.getUTCMonth() <= today.getMonth()) {
+                const monthIdx = tripDate.getUTCMonth();
                 const tripGross = (trip.cargo || []).reduce((sum, c) => sum + (c.weight * c.pricePerTon), 0);
-                const tripNet = (trip.cargo || []).reduce((sum, c) => sum + (c.weight * c.pricePerTon) - (c.tax || 0), 0);
-                const tripOpExpenses = (trip.fueling || []).reduce((sum, f) => sum + f.totalAmount, 0) + 
-                                     (trip.expenses || []).reduce((sum, e) => sum + e.amount, 0) + 
-                                     ((tripNet * (trip.driverCommissionRate || 0)) / 100);
+                const tripTax = (trip.cargo || []).reduce((sum, c) => sum + (c.tax || 0), 0);
+                const tripNet = tripGross - tripTax;
+                
+                const travelDays = calculateDays(trip.startDate, trip.endDate);
+                const tripDailyAmount = trip.totalDailyAmount || (travelDays * (trip.dailyRate || 0));
+                
+                const tripOpExps = (trip.expenses || []).reduce((sum, e) => sum + e.amount, 0) + 
+                                  ((tripNet * (trip.driverCommissionRate || 0)) / 100) +
+                                  tripDailyAmount +
+                                  tripTax; // Incluindo imposto como custo operacional mensal
 
-                monthData.revenue += tripGross;
-                monthData.fleetExpenses += tripOpExpenses;
+                revenue[monthIdx] += tripGross;
+                fleetExpenses[monthIdx] += tripOpExps;
             }
         });
 
-        filteredData.filteredWorkshopExpenses.forEach(exp => {
-            const key = `${exp.date.getUTCFullYear()}-${(exp.date.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-            const monthData = monthlyDataMap.get(key);
-            if (monthData) monthData.fleetExpenses += exp.amount;
+        // Fueling integration
+        fuelingRecords.filter(f => !selectedVehicleId || String(f.vehicleId) === String(selectedVehicleId)).forEach(f => {
+            const fDate = new Date(`${f.date}T00:00:00Z`);
+            if (fDate.getUTCFullYear() === curYear && fDate.getUTCMonth() <= today.getMonth()) {
+                fleetExpenses[fDate.getUTCMonth()] += f.totalAmount;
+            }
         });
 
-        filteredData.filteredFixedExpenses.forEach(exp => {
-            const key = `${exp.date.getUTCFullYear()}-${(exp.date.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-            const monthData = monthlyDataMap.get(key);
-            if (monthData) monthData.globalExpenses += exp.amount;
+        const getExpTrend = (expenses: (FixedExpense | WorkshopExpense)[]) => {
+            const trend = Array(labels.length).fill(0);
+            const source = selectedVehicleId ? expenses.filter(e => String(e.vehicleId) === String(selectedVehicleId)) : expenses;
+            source.forEach(exp => {
+                const installment = exp.totalAmount / exp.installments;
+                const first = new Date(`${exp.firstPaymentDate}T00:00:00Z`);
+                for (let i = 0; i < exp.installments; i++) {
+                    const payDate = new Date(first);
+                    payDate.setUTCMonth(payDate.getUTCMonth() + i);
+                    if (payDate.getUTCFullYear() === curYear && payDate.getUTCMonth() <= today.getMonth()) {
+                        trend[payDate.getUTCMonth()] += installment;
+                    }
+                }
+            });
+            return trend;
+        };
+
+        const fixedTrend = getExpTrend(fixedExpenses);
+        const workshopTrend = getExpTrend(workshopExpenses);
+        
+        const financialTrend = Array(labels.length).fill(0);
+        (financialEntries || []).forEach(entry => {
+            const dueDate = new Date(`${entry.dueDate}T00:00:00Z`);
+            if (dueDate.getUTCFullYear() === curYear && dueDate.getUTCMonth() <= today.getMonth()) {
+                financialTrend[dueDate.getUTCMonth()] += entry.amount;
+            }
         });
 
-        filteredData.filteredFinancialEntries.forEach(entry => {
-            const entryDate = new Date(`${entry.dueDate}T00:00:00Z`);
-            const key = `${entryDate.getUTCFullYear()}-${(entryDate.getUTCMonth() + 1).toString().padStart(2, '0')}`;
-            const monthData = monthlyDataMap.get(key);
-            if (monthData) monthData.globalExpenses += entry.amount;
-        });
+        for(let i=0; i<labels.length; i++) {
+            totalExpenses[i] = fleetExpenses[i] + fixedTrend[i] + workshopTrend[i] + financialTrend[i];
+        }
 
-        const sortedKeys = Array.from(monthlyDataMap.keys()).sort();
-        const labels: string[] = [];
-        const revenue: number[] = [];
-        const fleetExpenses: number[] = [];
-        const totalExpenses: number[] = [];
-        const result: number[] = [];
-
-        sortedKeys.forEach(key => {
-            const data = monthlyDataMap.get(key)!;
-            const [year, month] = key.split('-');
-            labels.push(`${month}/${year.slice(2)}`);
-            revenue.push(data.revenue);
-            fleetExpenses.push(data.fleetExpenses);
-            totalExpenses.push(data.fleetExpenses + data.globalExpenses);
-            result.push(data.revenue - (data.fleetExpenses + data.globalExpenses));
-        });
-
-        return { labels, revenue, fleetExpenses, totalExpenses, result };
-    }, [filteredData, startDate, endDate]);
+        return { labels, revenue, fleetExpenses, totalExpenses, results: revenue.map((r, i) => r - totalExpenses[i]) };
+    }, [trips, fuelingRecords, fixedExpenses, workshopExpenses, financialEntries, selectedVehicleId]);
 
     const handleExportExcel = () => {
-        const dataToExport = monthlyAnalysisData.labels.map((label, index) => ({
+        const dataToExport = fixedYearlyTrendData.labels.map((label, index) => ({
             'Mês': label,
-            'Receitas': monthlyAnalysisData.revenue[index],
-            'Despesas Operacionais': monthlyAnalysisData.fleetExpenses[index],
-            'Despesas Totais': monthlyAnalysisData.totalExpenses[index],
-            'Resultado Saldo': monthlyAnalysisData.result[index]
+            'Receitas': fixedYearlyTrendData.revenue[index],
+            'Despesas Operacionais': fixedYearlyTrendData.fleetExpenses[index],
+            'Despesas Totais': fixedYearlyTrendData.totalExpenses[index],
+            'Resultado Saldo': fixedYearlyTrendData.results[index]
         }));
         exportToXLSX(dataToExport, `Analise_${startDate}_a_${endDate}`, 'Analise_Mensal');
     };
 
-    const hasData = monthlyAnalysisData.labels.length > 0;
+    const hasData = fixedYearlyTrendData.labels.length > 0;
 
     return (
         <div className="space-y-6 relative">
@@ -215,41 +259,6 @@ export const AnalysisDashboard: React.FC = () => {
                 }
             `}} />
             
-             {lineTooltip?.visible && (
-                <div 
-                    className="absolute z-50 p-4 bg-slate-950/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-sm pointer-events-none min-w-[180px] ring-1 ring-white/5"
-                    style={{ left: lineTooltip.x, top: lineTooltip.y, transform: 'translate(-50%, -115%)' }}
-                >
-                    <p className="font-black text-[11px] mb-3 text-slate-500 uppercase tracking-[0.2em]">
-                        {monthlyAnalysisData.labels[lineTooltip.data.index]}
-                    </p>
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center gap-6">
-                            <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-sm bg-[#10b981]"></div>
-                                <span className="text-slate-400 font-bold text-[10px] uppercase">Receita</span>
-                            </div>
-                            <span className="font-black text-white text-sm">{formatCurrency(monthlyAnalysisData.revenue[lineTooltip.data.index])}</span>
-                        </div>
-                        <div className="flex justify-between items-center gap-6">
-                            <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-sm bg-[#f43f5e]"></div>
-                                <span className="text-slate-400 font-bold text-[10px] uppercase">Despesas</span>
-                            </div>
-                            <span className="font-black text-white text-sm">
-                                {formatCurrency(viewMode === 'fleet' ? monthlyAnalysisData.fleetExpenses[lineTooltip.data.index] : monthlyAnalysisData.totalExpenses[lineTooltip.data.index])}
-                            </span>
-                        </div>
-                        <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center gap-6">
-                            <span className="text-slate-500 font-black uppercase text-[10px] tracking-wider">Saldo</span>
-                            <span className={`font-black text-sm ${monthlyAnalysisData.result[lineTooltip.data.index] >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
-                                {formatCurrency(monthlyAnalysisData.result[lineTooltip.data.index])}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <Card className="border-none shadow-2xl shadow-blue-500/5 bg-slate-900/40 backdrop-blur-xl">
                 <CardHeader className="border-b border-slate-800/50 pb-8 px-4 sm:px-8">
                     <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6">
@@ -304,20 +313,46 @@ export const AnalysisDashboard: React.FC = () => {
                 </CardHeader>
                 
                 <CardContent className="pt-8 px-4 sm:px-8 pb-12">
+                     <div className="mb-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-blue-600 p-6 rounded-2xl shadow-xl shadow-blue-500/20 text-white relative overflow-hidden group">
+                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                                <ICONS.chartBar className="w-16 h-16" />
+                            </div>
+                            <p className="text-blue-100 text-[10px] sm:text-xs font-black uppercase tracking-widest mb-2 text-white/80">Faturado (Período Selecionado)</p>
+                            <p className="text-3xl font-black">{formatCurrency(stats.revenue)}</p>
+                        </div>
+                        <div className="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700/50 text-white relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                                <ICONS.truck className="w-16 h-16" />
+                            </div>
+                            <p className="text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest mb-2">Despesas (Período Selecionado)</p>
+                            <p className="text-3xl font-black text-rose-400">{formatCurrency(stats.totalExpenses)}</p>
+                        </div>
+                        <div className={`p-6 rounded-2xl shadow-xl text-white relative overflow-hidden group ${stats.netProfit >= 0 ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-rose-600 shadow-rose-500/20'}`}>
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                                <ICONS.currencyDollar className="w-16 h-16" />
+                            </div>
+                            <p className={`${stats.netProfit >= 0 ? 'text-emerald-100' : 'text-rose-100'} text-[10px] sm:text-xs font-black uppercase tracking-widest mb-2 text-white/80`}>Saldo Final (Período Selecionado)</p>
+                            <p className="text-3xl font-black">{formatCurrency(stats.netProfit)}</p>
+                        </div>
+                    </div>
+
+                    <div className="h-px bg-slate-800/50 mb-10"></div>
+
                     {hasData ? (
                         <div className="space-y-12">
                             {/* Dynamic KPI Section */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {viewMode === 'fleet' ? (
                                     <>
-                                        <KPICard title="Receita Operacional" value={stats.revenue} colorClass="text-blue-400" tooltipText="Total de fretes realizados pelos veículos selecionados." />
+                                        <KPICard title="Receita Operacional" value={stats.revenue} colorClass="text-blue-400" tooltipText="Total de fretes realizados no período filtrado." />
                                         <KPICard title="Custos de Viagem" value={stats.tripCosts} colorClass="text-rose-400" tooltipText="Diesel, Diárias, Pedágios e Comissões." />
                                         <KPICard title="Manutenção (Oficina)" value={stats.maintenance} colorClass="text-amber-400" tooltipText="Gastos com oficina e peças no período." />
-                                        <KPICard title="Margem de Contribuição" value={stats.operationalResult} colorClass={stats.operationalResult >= 0 ? "text-emerald-400" : "text-rose-600"} tooltipText="Receita - (Custos de Viagem + Oficina). É o quanto a frota gera sobrando." />
+                                        <KPICard title="Margem de Contribuição" value={stats.operationalResult} colorClass={stats.operationalResult >= 0 ? "text-emerald-400" : "text-rose-600"} tooltipText="Receita - (Custos de Viagem + Oficina)." />
                                     </>
                                 ) : (
                                     <>
-                                        <KPICard title="Faturamento Global" value={stats.revenue} colorClass="text-blue-400" tooltipText="Faturamento consolidado da empresa no período." />
+                                        <KPICard title="Faturamento Global" value={stats.revenue} colorClass="text-blue-400" tooltipText="Faturamento consolidado no período filtrado." />
                                         <KPICard title="Despesas Estruturais" value={stats.fixed} colorClass="text-orange-400" tooltipText="Seguros, Pneus e despesas vinculadas aos veículos mas fixas." />
                                         <KPICard title="Despesas Financeiras" value={stats.financial} colorClass="text-slate-400" tooltipText="Salários, Aluguel, Impostos e Geral." />
                                         <KPICard title="Resultado Líquido" value={stats.netProfit} colorClass={stats.netProfit >= 0 ? "text-emerald-400" : "text-rose-600"} tooltipText="Lucro final após TODAS as despesas operacionais e administrativas." />
@@ -346,11 +381,49 @@ export const AnalysisDashboard: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="h-[450px] w-full relative">
-                                    <BarChart 
-                                        labels={monthlyAnalysisData.labels}
+                                     {lineTooltip?.visible && (
+                                        <div 
+                                            className="absolute z-50 p-3 sm:p-4 bg-slate-950/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] text-xs sm:text-sm pointer-events-none min-w-[150px] sm:min-w-[180px] ring-1 ring-white/5"
+                                            style={{ 
+                                                left: `clamp(100px, ${lineTooltip.x}px, calc(100% - 100px))`, 
+                                                top: lineTooltip.y, 
+                                                transform: 'translate(-50%, -110%)' 
+                                            }}
+                                        >
+                                            <p className="font-black text-[10px] sm:text-[11px] mb-2 sm:mb-3 text-slate-500 uppercase tracking-[0.2em]">
+                                                {fixedYearlyTrendData.labels[lineTooltip.data.index]}
+                                            </p>
+                                            <div className="space-y-2 sm:space-y-3">
+                                                <div className="flex justify-between items-center gap-4 sm:gap-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-sm bg-[#10b981]"></div>
+                                                        <span className="text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase">Receita</span>
+                                                    </div>
+                                                    <span className="font-black text-white text-xs sm:text-sm">{formatCurrency(fixedYearlyTrendData.revenue[lineTooltip.data.index])}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center gap-4 sm:gap-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-1.5 h-1.5 rounded-sm bg-[#f43f5e]"></div>
+                                                        <span className="text-slate-400 font-bold text-[9px] sm:text-[10px] uppercase">Despesas</span>
+                                                    </div>
+                                                    <span className="font-black text-white text-xs sm:text-sm">
+                                                        {formatCurrency(viewMode === 'fleet' ? fixedYearlyTrendData.fleetExpenses[lineTooltip.data.index] : fixedYearlyTrendData.totalExpenses[lineTooltip.data.index])}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-white/5 flex justify-between items-center gap-4 sm:gap-6">
+                                                    <span className="text-slate-500 font-black uppercase text-[9px] sm:text-[10px] tracking-wider">Saldo</span>
+                                                    <span className={`font-black text-xs sm:text-sm ${fixedYearlyTrendData.results[lineTooltip.data.index] >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                                                        {formatCurrency(fixedYearlyTrendData.results[lineTooltip.data.index])}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <LineChart 
+                                        labels={fixedYearlyTrendData.labels}
                                         datasets={[
-                                            { label: 'Receitas', data: monthlyAnalysisData.revenue, color: '#10b981' },
-                                            { label: 'Despesas', data: viewMode === 'fleet' ? monthlyAnalysisData.fleetExpenses : monthlyAnalysisData.totalExpenses, color: '#f43f5e' }
+                                            { label: 'Receitas', data: fixedYearlyTrendData.revenue, color: '#10b981' },
+                                            { label: 'Despesas', data: viewMode === 'fleet' ? fixedYearlyTrendData.fleetExpenses : fixedYearlyTrendData.totalExpenses, color: '#f43f5e' }
                                         ]}
                                         onHover={setLineTooltip}
                                     />
@@ -371,12 +444,15 @@ export const AnalysisDashboard: React.FC = () => {
                                         {(() => {
                                             let totalKmC = 0, totalKmV = 0, totalL = 0, totalKm = 0;
                                             filteredData.filteredTrips.forEach(trip => {
-                                                const tripL = (trip.fueling || []).reduce((sum, f) => sum + f.liters, 0);
                                                 const tripKm = trip.endKm > trip.startKm ? trip.endKm - trip.startKm : 0;
-                                                const metrics = calculateTrechoMetrics(trip.trechos || [], tripL, tripKm);
+                                                // Trecho metrics remain based on trips
+                                                const metrics = calculateTrechoMetrics(trip.trechos || [], 0, tripKm);
                                                 totalKmC += metrics.kmCarregado; totalKmV += metrics.kmVazio;
-                                                totalL += tripL; totalKm += tripKm;
+                                                totalKm += tripKm;
                                             });
+
+                                            // Fuel liters from global records for this period
+                                            totalL = filteredData.filteredFuelingRecords.reduce((sum, f) => sum + f.liters, 0);
 
                                             const getMedia = (dist: number, litros: number) => litros > 0 ? (dist / litros).toFixed(2) : '0.00';
                                             // Realistic weighting
