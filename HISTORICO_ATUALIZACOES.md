@@ -2,6 +2,9 @@
 
 Este documento registra as principais mudanças, correções e auditorias realizadas no sistema para garantir a integridade dos dados financeiros e a estabilidade da aplicação.
 
+> [!IMPORTANT]
+> **Base de Evolução**: Este sistema foi desenvolvido a partir de uma base já evoluída, onde herdamos funcionalidades consolidadas e aplicamos melhorias drásticas na estrutura do banco de dados (PocketBase) para suportar os novos cálculos de rentabilidade, impostos e auditagem financeira.
+
 ---
 
 ## 🚀 Versão Atual: 1.0.5 (Auditoria & Estabilização)
