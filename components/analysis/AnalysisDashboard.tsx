@@ -94,7 +94,7 @@ export const AnalysisDashboard: React.FC = () => {
         const filteredFixedExpenses = getExpensesInRange(fixedExpenses);
         const filteredWorkshopExpenses = getExpensesInRange(workshopExpenses);
         
-        const filteredFinancialEntries = (financialEntries || []).filter(entry => {
+        const filteredFinancialEntries = selectedVehicleId ? [] : (financialEntries || []).filter(entry => {
             const dueDate = new Date(`${entry.dueDate}T00:00:00Z`);
             return dueDate >= start && dueDate <= end;
         });
@@ -222,12 +222,14 @@ export const AnalysisDashboard: React.FC = () => {
         const workshopTrend = getExpTrend(workshopExpenses);
         
         const financialTrend = Array(labels.length).fill(0);
-        (financialEntries || []).forEach(entry => {
-            const dueDate = new Date(`${entry.dueDate}T00:00:00Z`);
-            if (dueDate.getUTCFullYear() === curYear && dueDate.getUTCMonth() <= today.getMonth()) {
-                financialTrend[dueDate.getUTCMonth()] += entry.amount;
-            }
-        });
+        if (!selectedVehicleId) {
+            (financialEntries || []).forEach(entry => {
+                const dueDate = new Date(`${entry.dueDate}T00:00:00Z`);
+                if (dueDate.getUTCFullYear() === curYear && dueDate.getUTCMonth() <= today.getMonth()) {
+                    financialTrend[dueDate.getUTCMonth()] += entry.amount;
+                }
+            });
+        }
 
         for(let i=0; i<labels.length; i++) {
             totalExpenses[i] = fleetExpenses[i] + fixedTrend[i] + workshopTrend[i] + financialTrend[i];

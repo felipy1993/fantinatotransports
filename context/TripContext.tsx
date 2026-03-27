@@ -1,4 +1,5 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { useNotification } from './NotificationContext';
 import { Trip, Driver, Vehicle, FixedExpense, WorkshopExpense, Admin, FinancialEntry, FinancialCategory, SystemConfig, Advance, Maintenance, FuelingRecord } from '../types';
 import { dataService } from '../services/dataService';
 import { generateSalt, hashPassword } from '../utils/crypto';
@@ -80,11 +81,13 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isLoading, setIsLoading] = useState(true);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
 
+    const { showNotification } = useNotification();
+
     useEffect(() => {
         const fetchAllData = async () => {
             setIsLoading(true);
             try {
-                // Primeira Fase: Carregamento Crítico (Rápido) para liberar a tela inicial
+                // Primeira Fase: Carregamento Crítico (Rápido)
                 const [
                     tripsData,
                     driversData,
@@ -96,7 +99,7 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     dataService.list('drivers'),
                     dataService.list('vehicles'),
                     dataService.list('admins'),
-                    dataService.list('system_config').catch(() => []) // Handle missing collection gracefully
+                    dataService.list('system_config').catch(() => [])
                 ]);
 
                 setTrips(tripsData as Trip[]);
@@ -104,12 +107,10 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setVehicles(vehiclesData as Vehicle[]);
                 setAdmins(adminsData as Admin[]);
                 
-                // systemConfig is expected to be a single record or empty
                 const configs = systemConfigData as SystemConfig[];
                 if (configs && configs.length > 0) {
                     setSystemConfig(configs[0]);
                 } else {
-                    // Default fallback if no config exists - system is "free" by default until configured
                     setSystemConfig({
                         id: 'default',
                         dueDate: '2099-12-31',
@@ -119,15 +120,14 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         pixName: 'Felipe Simao da Silva',
                         pixBank: 'Banco do Brasil',
                         whatsappNumber: '17997557625',
-                        blockMessage: 'O acesso ao sistema está temporariamente suspenso. Por favor, entre em contato com o administrador para regularizar sua situação.',
+                        blockMessage: 'O acesso ao sistema está temporariamente suspenso.',
                         updatedAt: new Date().toISOString()
                     });
                 }
 
-                // Liberar a tela inicial pro usuário IMEDIATAMENTE!
                 setIsLoading(false);
 
-                // Segunda Fase: Carregamento em Segundo Plano
+                // Segunda Fase: Segundo Plano
                 Promise.all([
                     dataService.list('fixedExpenses'),
                     dataService.list('workshopExpenses'),
@@ -137,79 +137,19 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     dataService.list('maintenance').catch(() => []),
                     dataService.list('fueling_records').catch(() => [])
                 ]).then(async ([
-                    fixedExpensesData,
-                    workshopExpensesData,
-                    financialEntriesData,
-                    financialCategoriesData,
-                    advancesData,
-                    maintenanceData,
-                    fuelingData
+                    fe, we, fi, fc, ad, ma, fu
                 ]) => {
-                    setFixedExpenses(fixedExpensesData as FixedExpense[]);
-                    setWorkshopExpenses(workshopExpensesData as WorkshopExpense[]);
-                    setFinancialEntries(financialEntriesData as FinancialEntry[]);
-                    setFinancialCategories(financialCategoriesData as FinancialCategory[]);
-                    setAdvances(advancesData as Advance[]);
-                    setMaintenance(maintenanceData as Maintenance[]);
-                    setFuelingRecords(fuelingData as FuelingRecord[]);
+                    setFixedExpenses(fe as FixedExpense[]);
+                    setWorkshopExpenses(we as WorkshopExpense[]);
+                    setFinancialEntries(fi as FinancialEntry[]);
+                    setFinancialCategories(fc as FinancialCategory[]);
+                    setAdvances(ad as Advance[]);
+                    setMaintenance(ma as Maintenance[]);
+                    setFuelingRecords(fu as FuelingRecord[]);
+                }).catch(err => console.error("Background fetch error:", err));
 
-                    // Seed logic for financialCategories (if enabled)
-                    const shouldSeed = (window as any).__ENABLE_SEED__ === true;
-                    if (shouldSeed && financialCategoriesData.length === 0) {
-                        const baseCats = ['DESPESAS FIXAS', 'FORNECEDOR', 'IMPOSTO', 'SALARIO', 'OUTRO'];
-                        const createdCats = [];
-                        for (const cat of baseCats) {
-                            const newCat = await dataService.create('financialCategories', { name: cat, createdAt: new Date().toISOString() });
-                            createdCats.push(newCat as FinancialCategory);
-                        }
-                        setFinancialCategories(createdCats);
-                    }
-                }).catch(error => console.error("Error fetching background data:", error));
-
-                // Seed logic (if enabled) for critical data
-                const shouldSeed = (window as any).__ENABLE_SEED__ === true;
-                if (shouldSeed) {
-                    if (adminsData.length === 0) {
-                        console.log("No admins found, creating initial admin 'FELIPE'...");
-                        const salt = generateSalt();
-                        const passwordHash = await hashPassword('123451', salt);
-                        const newAdmin = await dataService.create('admins', { name: 'FELIPE', passwordHash, salt });
-                        setAdmins([newAdmin as Admin]);
-                    }
-
-                    if (driversData.length === 0) {
-                        console.log("No drivers found, creating initial driver 'PAULO'...");
-                        const salt = generateSalt();
-                        const passwordHash = await hashPassword('123451', salt);
-                        const newDriver = await dataService.create('drivers', { 
-                            name: 'PAULO', 
-                            cnh: '111222333', 
-                            phone: '11999998888', 
-                            status: 'active', 
-                            passwordHash, 
-                            salt 
-                        });
-                        setDrivers([newDriver as Driver]);
-                    }
-
-                    if (configs.length === 0) {
-                        console.log("No system_config found, creating default...");
-                        const defaultConfig = {
-                            dueDate: '2099-12-31',
-                            isPaid: true,
-                            amount: 0,
-                            pixKey: '(17) 997557625',
-                            pixName: 'Felipe Simao da Silva',
-                            pixBank: 'Banco do Brasil',
-                            whatsappNumber: '17997557625',
-                            blockMessage: 'O acesso ao sistema está temporariamente suspenso. Por favor, entre em contato com o administrador para regularizar sua situação.',
-                        };
-                        const created = await dataService.create('system_config', defaultConfig);
-                        setSystemConfig(created as SystemConfig);
-                    }
-                }
             } catch (error) {
-                console.error("Error fetching critical data:", error);
+                console.error("Critical fetch error:", error);
                 setIsLoading(false);
             }
         };
@@ -219,265 +159,357 @@ export const TripProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const daysToExpiration = React.useMemo(() => {
         if (!systemConfig || systemConfig.isPaid) return null;
-        
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
         const dueDate = new Date(systemConfig.dueDate + 'T00:00:00');
         const diffTime = dueDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        return diffDays;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }, [systemConfig]);
 
   const addTrip = async (trip: Omit<Trip, 'id' | 'createdAt'>) => {
-    let monthlyTripNumber = trip.monthlyTripNumber;
-    
-    // Only calculate monthly trip number if it wasn't provided (e.g., brand new trip)
-    if (!monthlyTripNumber && trip.startDate && trip.driverId) {
-        const startDate = new Date(trip.startDate + 'T00:00:00');
-        const year = startDate.getFullYear();
-        const month = startDate.getMonth();
-        
-        const tripsInMonthForDriver = trips.filter(t => {
-            if (t.driverId !== trip.driverId) return false;
-            if (!t.startDate) return false;
-            const tDate = new Date(t.startDate + 'T00:00:00');
-            return tDate.getFullYear() === year && tDate.getMonth() === month;
-        });
-
-        monthlyTripNumber = tripsInMonthForDriver.length + 1;
+    try {
+        let monthlyTripNumber = trip.monthlyTripNumber;
+        if (!monthlyTripNumber && trip.startDate && trip.driverId) {
+            const startDate = new Date(trip.startDate + 'T00:00:00');
+            const tripsInMonth = trips.filter(t => {
+                if (t.driverId !== trip.driverId || !t.startDate) return false;
+                const tDate = new Date(t.startDate + 'T00:00:00');
+                return tDate.getFullYear() === startDate.getFullYear() && tDate.getMonth() === startDate.getMonth();
+            });
+            monthlyTripNumber = tripsInMonth.length + 1;
+        }
+        const created = await dataService.create('trips', { ...trip, monthlyTripNumber });
+        setTrips(prev => [created as Trip, ...prev]);
+        showNotification('Viagem adicionada!', 'success');
+    } catch (e) {
+        showNotification('Erro ao adicionar viagem.', 'error');
     }
-    
-    const newTrip = {
-      ...trip,
-      monthlyTripNumber,
-    };
-    const created = await dataService.create('trips', newTrip);
-    setTrips(prev => [created as Trip, ...prev]);
   };
   
   const updateTrip = async (updatedTrip: Trip) => {
-    const { id, createdAt, ...tripData } = updatedTrip;
-    const updated = await dataService.update('trips', id, tripData);
-    setTrips(prev => prev.map(t => t.id === id ? updated as Trip : t));
+    try {
+        const { id, createdAt, ...data } = updatedTrip;
+        const updated = await dataService.update('trips', id, data);
+        setTrips(prev => prev.map(t => t.id === id ? updated as Trip : t));
+        showNotification('Viagem atualizada!', 'success');
+    } catch (e) {
+        showNotification('Erro ao atualizar viagem.', 'error');
+    }
   };
 
   const getTrip = (id: string) => trips.find(t => t.id === id);
 
   const addDriver = async (driver: AddDriverInput) => {
-    if ((driver.password || '').trim().length === 0) {
-        throw new Error('A senha não pode ser vazia.');
+    try {
+        if (!driver.password) throw new Error('Senha obrigatória');
+        const salt = generateSalt();
+        const passwordHash = await hashPassword(driver.password, salt);
+        const created = await dataService.create('drivers', {
+            ...driver,
+            name: driver.name.trim().toUpperCase(),
+            status: 'active',
+            passwordHash,
+            salt
+        });
+        setDrivers(prev => [created as Driver, ...prev]);
+        showNotification('Motorista cadastrado!', 'success');
+    } catch (e: any) {
+        showNotification(e.message || 'Erro ao cadastrar motorista.', 'error');
     }
-    const salt = generateSalt();
-    const passwordHash = await hashPassword(driver.password, salt);
-    const newDriver = { 
-        name: (driver.name || '').trim().toUpperCase(),
-        cnh: driver.cnh,
-        phone: driver.phone,
-        status: 'active',
-        passwordHash,
-        salt,
-        dailyRate: driver.dailyRate,
-    };
-    const created = await dataService.create('drivers', newDriver);
-    setDrivers(prev => [created as Driver, ...prev]);
   };
   
   const updateDriver = async (updatedDriver: Driver) => {
-    const { id, ...driverData } = updatedDriver;
-    const updated = await dataService.update('drivers', id, driverData);
-    setDrivers(prev => prev.map(d => d.id === id ? updated as Driver : d));
+    try {
+        const { id, ...data } = updatedDriver;
+        const updated = await dataService.update('drivers', id, data);
+        setDrivers(prev => prev.map(d => d.id === id ? updated as Driver : d));
+        showNotification('Motorista atualizado!', 'success');
+    } catch (e) {
+        showNotification('Erro ao atualizar motorista.', 'error');
+    }
   };
 
   const deleteDriver = async (driverId: string) => {
-    await dataService.delete('drivers', driverId);
-    setDrivers(prev => prev.filter(d => d.id !== driverId));
+    try {
+        await dataService.delete('drivers', driverId);
+        setDrivers(prev => prev.filter(d => d.id !== driverId));
+        showNotification('Motorista removido.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover motorista.', 'error');
+    }
   };
 
   const addVehicle = async (vehicle: Omit<Vehicle, 'id' | 'status'>) => {
-    const newVehicle = { ...vehicle, status: 'active' };
-    const created = await dataService.create('vehicles', newVehicle);
-    setVehicles(prev => [created as Vehicle, ...prev]);
-  };
-  
-  const updateVehicle = async (updatedVehicle: Vehicle) => {
-    const { id, ...vehicleData } = updatedVehicle;
-    const updated = await dataService.update('vehicles', id, vehicleData);
-    setVehicles(prev => prev.map(v => v.id === id ? updated as Vehicle : v));
+    try {
+        const created = await dataService.create('vehicles', { ...vehicle, status: 'active' });
+        setVehicles(prev => [created as Vehicle, ...prev]);
+        showNotification('Veículo cadastrado!', 'success');
+    } catch (e) {
+        showNotification('Erro ao cadastrar veículo.', 'error');
+    }
   };
 
-  const deleteVehicle = async (vehicleId: string) => {
-    await dataService.delete('vehicles', vehicleId);
-    setVehicles(prev => prev.filter(v => v.id !== vehicleId));
+  const updateVehicle = async (v: Vehicle) => {
+    try {
+        const { id, ...data } = v;
+        const updated = await dataService.update('vehicles', id, data);
+        setVehicles(prev => prev.map(item => item.id === id ? updated as Vehicle : item));
+        showNotification('Veículo atualizado!', 'success');
+    } catch (e) {
+        showNotification('Erro ao atualizar veículo.', 'error');
+    }
   };
-  
+
+  const deleteVehicle = async (id: string) => {
+    try {
+        await dataService.delete('vehicles', id);
+        setVehicles(prev => prev.filter(v => v.id !== id));
+        showNotification('Veículo removido.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover veículo.', 'error');
+    }
+  };
+
   const getDriver = (id: string) => drivers.find(d => d.id === id);
   const getVehicle = (id: string) => vehicles.find(v => v.id === id);
   
   const addAdmin = async (admin: AddAdminInput) => {
-    if ((admin.password || '').trim().length === 0) {
-        throw new Error('A senha não pode ser vazia.');
+    try {
+        const salt = generateSalt();
+        const passwordHash = await hashPassword(admin.password, salt);
+        const created = await dataService.create('admins', {
+            name: admin.name.trim().toUpperCase(),
+            passwordHash,
+            salt
+        });
+        setAdmins(prev => [created as Admin, ...prev]);
+        showNotification('Admin cadastrado!', 'success');
+    } catch (e) {
+        showNotification('Erro ao cadastrar admin.', 'error');
     }
-    const salt = generateSalt();
-    const passwordHash = await hashPassword(admin.password, salt);
-    const newAdmin = { 
-        name: (admin.name || '').trim().toUpperCase(),
-        passwordHash,
-        salt,
-    };
-    const created = await dataService.create('admins', newAdmin);
-    setAdmins(prev => [created as Admin, ...prev]);
   };
 
-  const updateAdmin = async (updatedAdmin: Admin) => {
-    const { id, ...adminData } = updatedAdmin;
-    const updated = await dataService.update('admins', id, adminData);
-    setAdmins(prev => prev.map(a => a.id === id ? updated as Admin : a));
+  const updateAdmin = async (a: Admin) => {
+    try {
+        const { id, ...data } = a;
+        const updated = await dataService.update('admins', id, data);
+        setAdmins(prev => prev.map(item => item.id === id ? updated as Admin : item));
+        showNotification('Admin atualizado!', 'success');
+    } catch (e) {
+        showNotification('Erro ao atualizar admin.', 'error');
+    }
   };
 
-  const deleteAdmin = async (adminId: string) => {
-    await dataService.delete('admins', adminId);
-    setAdmins(prev => prev.filter(a => a.id !== adminId));
+  const deleteAdmin = async (id: string) => {
+    try {
+        await dataService.delete('admins', id);
+        setAdmins(prev => prev.filter(a => a.id !== id));
+        showNotification('Admin removido.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover admin.', 'error');
+    }
   };
   
   const getAdmin = (id: string) => admins.find(a => a.id === id);
 
   const addFixedExpense = async (expense: Omit<FixedExpense, 'id' | 'createdAt' | 'payments'>) => {
-    const newExpense = {
-      ...expense,
-      createdAt: new Date().toISOString(),
-      payments: [],
-    };
-    const created = await dataService.create('fixedExpenses', newExpense);
-    setFixedExpenses(prev => [created as FixedExpense, ...prev]);
+    try {
+        const created = await dataService.create('fixedExpenses', { ...expense, createdAt: new Date().toISOString(), payments: [] });
+        setFixedExpenses(prev => [created as FixedExpense, ...prev]);
+        showNotification('Despesa fixa adicionada!', 'success');
+    } catch (e) {
+        showNotification('Erro ao adicionar despesa.', 'error');
+    }
   };
 
-  const updateFixedExpense = async (updatedExpense: FixedExpense) => {
-    const { id, ...expenseData } = updatedExpense;
-    const updated = await dataService.update('fixedExpenses', id, expenseData);
-    setFixedExpenses(prev => prev.map(e => e.id === id ? updated as FixedExpense : e));
+  const updateFixedExpense = async (exp: FixedExpense) => {
+    try {
+        const { id, ...data } = exp;
+        const updated = await dataService.update('fixedExpenses', id, data);
+        setFixedExpenses(prev => prev.map(e => e.id === id ? updated as FixedExpense : e));
+    } catch (e) {
+        showNotification('Erro ao atualizar despesa.', 'error');
+    }
   };
 
-  const deleteFixedExpense = async (expenseId: string) => {
-    await dataService.delete('fixedExpenses', expenseId);
-    setFixedExpenses(prev => prev.filter(e => e.id !== expenseId));
+  const deleteFixedExpense = async (id: string) => {
+    try {
+        await dataService.delete('fixedExpenses', id);
+        setFixedExpenses(prev => prev.filter(e => e.id !== id));
+        showNotification('Despesa removida.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover despesa.', 'error');
+    }
   };
 
   const addWorkshopExpense = async (expense: Omit<WorkshopExpense, 'id' | 'createdAt' | 'payments'>) => {
-    const newExpense = {
-      ...expense,
-      createdAt: new Date().toISOString(),
-      payments: [],
-    };
-    const created = await dataService.create('workshopExpenses', newExpense);
-    setWorkshopExpenses(prev => [created as WorkshopExpense, ...prev]);
+    try {
+        const created = await dataService.create('workshopExpenses', { ...expense, createdAt: new Date().toISOString(), payments: [] });
+        setWorkshopExpenses(prev => [created as WorkshopExpense, ...prev]);
+        showNotification('Despesa de oficina adicionada!', 'success');
+    } catch (e) {
+        showNotification('Erro ao adicionar despesa.', 'error');
+    }
   };
 
-  const updateWorkshopExpense = async (updatedExpense: WorkshopExpense) => {
-    const { id, ...expenseData } = updatedExpense;
-    const updated = await dataService.update('workshopExpenses', id, expenseData);
-    setWorkshopExpenses(prev => prev.map(e => e.id === id ? updated as WorkshopExpense : e));
+  const updateWorkshopExpense = async (exp: WorkshopExpense) => {
+    try {
+        const { id, ...data } = exp;
+        const updated = await dataService.update('workshopExpenses', id, data);
+        setWorkshopExpenses(prev => prev.map(e => e.id === id ? updated as WorkshopExpense : e));
+    } catch (e) {
+        showNotification('Erro ao atualizar despesa.', 'error');
+    }
   };
 
-  const deleteWorkshopExpense = async (expenseId: string) => {
-    await dataService.delete('workshopExpenses', expenseId);
-    setWorkshopExpenses(prev => prev.filter(e => e.id !== expenseId));
+  const deleteWorkshopExpense = async (id: string) => {
+    try {
+        await dataService.delete('workshopExpenses', id);
+        setWorkshopExpenses(prev => prev.filter(e => e.id !== id));
+        showNotification('Despesa removida.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover despesa.', 'error');
+    }
   };
 
   const addFinancialEntry = async (entry: Omit<FinancialEntry, 'id' | 'createdAt' | 'payments'>) => {
-    const newEntry = {
-        ...entry,
-        createdAt: new Date().toISOString(),
-        payments: [],
-    };
-    const created = await dataService.create('financialEntries', newEntry);
-    setFinancialEntries(prev => [created as FinancialEntry, ...prev]);
+    try {
+        const created = await dataService.create('financialEntries', { ...entry, createdAt: new Date().toISOString(), payments: [] });
+        setFinancialEntries(prev => [created as FinancialEntry, ...prev]);
+        showNotification('Lançamento realizado!', 'success');
+    } catch (e) {
+        showNotification('Erro ao realizar lançamento.', 'error');
+    }
   };
 
-  const updateFinancialEntry = async (updatedEntry: FinancialEntry) => {
-    const { id, ...data } = updatedEntry;
-    const updated = await dataService.update('financialEntries', id, data);
-    setFinancialEntries(prev => prev.map(e => e.id === id ? updated as FinancialEntry : e));
+  const updateFinancialEntry = async (entry: FinancialEntry) => {
+    try {
+        const { id, ...data } = entry;
+        const updated = await dataService.update('financialEntries', id, data);
+        setFinancialEntries(prev => prev.map(e => e.id === id ? updated as FinancialEntry : e));
+    } catch (e) {
+        showNotification('Erro ao atualizar lançamento.', 'error');
+    }
   };
 
-  const deleteFinancialEntry = async (entryId: string) => {
-    await dataService.delete('financialEntries', entryId);
-    setFinancialEntries(prev => prev.filter(e => e.id !== entryId));
+  const deleteFinancialEntry = async (id: string) => {
+    try {
+        await dataService.delete('financialEntries', id);
+        setFinancialEntries(prev => prev.filter(e => e.id !== id));
+        showNotification('Lançamento removido.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover lançamento.', 'error');
+    }
   };
 
   const addFinancialCategory = async (name: string) => {
-    const newCat = {
-        name: name.trim().toUpperCase(),
-        createdAt: new Date().toISOString(),
-    };
-    const created = await dataService.create('financialCategories', newCat);
-    setFinancialCategories(prev => [...prev, created as FinancialCategory]);
+    try {
+        const created = await dataService.create('financialCategories', { name: name.trim().toUpperCase(), createdAt: new Date().toISOString() });
+        setFinancialCategories(prev => [...prev, created as FinancialCategory]);
+        showNotification('Categoria adicionada!', 'success');
+    } catch (e) {
+        showNotification('Erro ao adicionar categoria.', 'error');
+    }
   };
 
   const deleteFinancialCategory = async (id: string) => {
-    await dataService.delete('financialCategories', id);
-    setFinancialCategories(prev => prev.filter(c => c.id !== id));
+    try {
+        await dataService.delete('financialCategories', id);
+        setFinancialCategories(prev => prev.filter(c => c.id !== id));
+        showNotification('Categoria removida.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover categoria.', 'error');
+    }
   };
 
   const addAdvance = async (advance: Omit<Advance, 'id' | 'createdAt'>) => {
-    const newAdvance = {
-      ...advance,
-      createdAt: new Date().toISOString(),
-    };
-    const created = await dataService.create('advances', newAdvance);
-    setAdvances(prev => [created as Advance, ...prev]);
+    try {
+        const created = await dataService.create('advances', { ...advance, createdAt: new Date().toISOString() });
+        setAdvances(prev => [created as Advance, ...prev]);
+        showNotification('Vale registrado!', 'success');
+    } catch (e) {
+        showNotification('Erro ao registrar vale.', 'error');
+    }
   };
 
-  const updateAdvance = async (updatedAdvance: Advance) => {
-    const { id, ...data } = updatedAdvance;
-    const updated = await dataService.update('advances', id, data);
-    setAdvances(prev => prev.map(a => a.id === id ? updated as Advance : a));
+  const updateAdvance = async (adv: Advance) => {
+    try {
+        const { id, ...data } = adv;
+        const updated = await dataService.update('advances', id, data);
+        setAdvances(prev => prev.map(a => a.id === id ? updated as Advance : a));
+    } catch (e) {
+        showNotification('Erro ao atualizar vale.', 'error');
+    }
   };
 
-  const deleteAdvance = async (advanceId: string) => {
-    await dataService.delete('advances', advanceId);
-    setAdvances(prev => prev.filter(a => a.id !== advanceId));
+  const deleteAdvance = async (id: string) => {
+    try {
+        await dataService.delete('advances', id);
+        setAdvances(prev => prev.filter(a => a.id !== id));
+        showNotification('Vale removido.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover vale.', 'error');
+    }
   };
 
   const addMaintenance = async (maint: Omit<Maintenance, 'id' | 'createdAt'>) => {
-    const newMaint = {
-      ...maint,
-      createdAt: new Date().toISOString(),
-    };
-    const created = await dataService.create('maintenance', newMaint);
-    setMaintenance(prev => [created as Maintenance, ...prev]);
+    try {
+        const created = await dataService.create('maintenance', { ...maint, createdAt: new Date().toISOString() });
+        setMaintenance(prev => [created as Maintenance, ...prev]);
+        showNotification('Manutenção registrada!', 'success');
+    } catch (e) {
+        showNotification('Erro ao registrar manutenção.', 'error');
+    }
   };
 
-  const updateMaintenance = async (updatedMaint: Maintenance) => {
-    const { id, ...data } = updatedMaint;
-    const updated = await dataService.update('maintenance', id, data);
-    setMaintenance(prev => prev.map(m => m.id === id ? updated as Maintenance : m));
+  const updateMaintenance = async (m: Maintenance) => {
+    try {
+        const { id, ...data } = m;
+        const updated = await dataService.update('maintenance', id, data);
+        setMaintenance(prev => prev.map(item => item.id === id ? updated as Maintenance : item));
+    } catch (e) {
+        showNotification('Erro ao atualizar manutenção.', 'error');
+    }
   };
 
-  const deleteMaintenance = async (maintenanceId: string) => {
-    await dataService.delete('maintenance', maintenanceId);
-    setMaintenance(prev => prev.filter(m => m.id !== maintenanceId));
+  const deleteMaintenance = async (id: string) => {
+    try {
+        await dataService.delete('maintenance', id);
+        setMaintenance(prev => prev.filter(m => m.id !== id));
+        showNotification('Manutenção removida.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover manutenção.', 'error');
+    }
   };
 
-  const addFuelingRecord = async (fueling: Omit<FuelingRecord, 'id' | 'createdAt'>) => {
-    const newFueling = {
-      ...fueling,
-      createdAt: new Date().toISOString(),
-    };
-    const created = await dataService.create('fueling_records', newFueling);
-    setFuelingRecords(prev => [created as FuelingRecord, ...prev]);
+  const addFuelingRecord = async (fuel: Omit<FuelingRecord, 'id' | 'createdAt'>) => {
+    try {
+        const created = await dataService.create('fueling_records', { ...fuel, createdAt: new Date().toISOString() });
+        setFuelingRecords(prev => [created as FuelingRecord, ...prev]);
+        showNotification('Abastecimento registrado!', 'success');
+    } catch (e) {
+        showNotification('Erro ao registrar abastecimento.', 'error');
+    }
   };
 
-  const updateFuelingRecord = async (updatedFueling: FuelingRecord) => {
-    const { id, ...data } = updatedFueling;
-    const updated = await dataService.update('fueling_records', id, data);
-    setFuelingRecords(prev => prev.map(f => f.id === id ? updated as FuelingRecord : f));
+  const updateFuelingRecord = async (f: FuelingRecord) => {
+    try {
+        const { id, ...data } = f;
+        const updated = await dataService.update('fueling_records', id, data);
+        setFuelingRecords(prev => prev.map(item => item.id === id ? updated as FuelingRecord : item));
+    } catch (e) {
+        showNotification('Erro ao atualizar abastecimento.', 'error');
+    }
   };
 
-  const deleteFuelingRecord = async (fuelingId: string) => {
-    await dataService.delete('fueling_records', fuelingId);
-    setFuelingRecords(prev => prev.filter(f => f.id !== fuelingId));
+  const deleteFuelingRecord = async (id: string) => {
+    try {
+        await dataService.delete('fueling_records', id);
+        setFuelingRecords(prev => prev.filter(f => f.id !== id));
+        showNotification('Abastecimento removido.', 'success');
+    } catch (e) {
+        showNotification('Erro ao remover abastecimento.', 'error');
+    }
   };
 
   return (
